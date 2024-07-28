@@ -1,0 +1,26 @@
+[package]
+name = "beamup"
+version = "0.1.0"
+edition = "2021"
+authors = ["Tristan Sloughter <tristan@sloughter.dev>"]
+repository = "https://github.com/tsloughter/beamup"
+
+[dependencies]
+clap = {version = "4.5.8", features = ["derive", "color"]}
+clap_complete = "4.5.7"
+log = "0.4.21"
+env_logger = "0.11.3"
+tempdir = "0.3.4"
+tar = "0.4.5"
+glob = "0.3.1"
+rust-ini = "0.21"
+dirs = "5.0.1"
+indicatif = "0.17.8"
+console = "0.15.8"
+num_cpus = "1.8.0"
+shell-words = "1.0.0"
+
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
