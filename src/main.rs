@@ -12,11 +12,13 @@ use std::io::Write;
 use std::path::*;
 use std::process;
 mod config;
+use std::os::unix::fs::symlink;
 use tokio::runtime::Runtime;
 
 mod github;
 mod install;
 mod languages;
+mod run;
 
 #[derive(Parser, Debug)]
 #[command(version, about = "Manage BEAM language installs.", long_about = None)]
@@ -181,6 +183,25 @@ fn repo_or_default(maybe_repo: Option<String>) -> String {
     }
 }
 
+fn update_bins(language: &languages::Language) {
+    match language {
+        languages::Language::Gleam => {
+            let home_dir = dirs::home_dir().unwrap(); //config::lookup_cache_dir(&config);
+            let bin_dir = Path::new(&home_dir).join(".local").join("bin");
+            let _ = std::fs::create_dir_all(&bin_dir);
+
+            let link = Path::new(&bin_dir).join("gleam");
+            let beamup_exe = std::env::current_exe().unwrap();
+            debug!("linking {:?} to {:?}", link, beamup_exe);
+            let e = std::fs::remove_file(&link);
+            debug!("{:?}", e);
+            let r = symlink(beamup_exe, link);
+            debug!("{:?}", r)
+        }
+        _ => {}
+    };
+}
+
 fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
     generate(gen, cmd, cmd.get_name().to_string(), &mut std::io::stdout());
 }
@@ -223,7 +244,10 @@ fn handle_command(bin_path: PathBuf) {
                 language, release, id, repo, force
             );
 
-            install::install(language, release, id, repo, force);
+            let dir = install::install(language, release, id, repo, force);
+            update_bins(language);
+
+            config::add_install(language, "latest".to_string(), dir, config_file, config);
         }
         _ => {
             debug!("CONFIG {:?}", config);
@@ -275,6 +299,11 @@ fn main() {
             }
         }
     } else {
+        if f.eq("gleam") {
+            run::run("gleam", args)
+        } else {
+            error!("No such command: {}", f.to_str().unwrap());
+        }
         // match build::BINS
         //     .iter()
         //     .find(|&&x| f.eq(Path::new(x).file_name().unwrap()))
@@ -285,7 +314,7 @@ fn main() {
         //     }
         //     None => {
         //         error!("No such command: {}", f.to_str().unwrap());
-        process::exit(1)
+        // process::exit(1)
         // }
         // }
     }

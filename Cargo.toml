@@ -16,7 +16,7 @@ glob = "0.3.1"
 toml = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 dirs = "5.0.1"
-indicatif = "0.17.8"
+indicatif = { version = "0.17.8", features = ["futures", "tokio", "improved_unicode"] }
 console = "0.15.8"
 num_cpus = "1.8.0"
 shell-words = "1.0.0"
@@ -24,6 +24,7 @@ octocrab = "0.38.0"
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
 reqwest = { version = "0.12.5", features = ["blocking"] }
 bytes = { version = "1.6.1", features = [] }
+flate2 = "1.0.30"
 
 # The profile that 'cargo dist' will build with
 [profile.dist]

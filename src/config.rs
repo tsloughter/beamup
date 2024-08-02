@@ -2,20 +2,95 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
 use std::io::Write;
-
+use std::path::*;
 use std::process;
 use toml;
+
+use crate::languages;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     install_dir: String,
-    erlang: Option<Language>,
-    gleam: Option<Language>,
+    erlang: Option<LanguageConfig>,
+    gleam: Option<LanguageConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Language {
+pub struct LanguageConfig {
     default: Option<String>,
+    installs: toml::Table,
+}
+
+// #[derive(Debug, Deserialize, Serialize)]
+// pub struct Install {}
+
+pub fn install_to_use() -> &'static str {
+    "/home/tristan/.cache/beamup/gleam/latest"
+}
+
+pub fn add_install(
+    language: &languages::Language,
+    id: String,
+    dir: String,
+    config_file: String,
+    config: Config,
+) {
+    debug!("adding install {id} pointing to {dir}");
+    let language_config = match language {
+        languages::Language::Gleam =>
+            update_language_config(config.gleam)
+
+
+
+            match config.gleam {
+            None => {
+                let table: &mut toml::Table = &mut toml::Table::new();
+                table.insert(id.clone(), toml::Value::String(dir));
+                LanguageConfig {
+                    default: Some(id),
+                    installs: table.clone(),
+                }
+            }
+            Some(LanguageConfig {
+                default: _,
+                installs: mut table,
+            }) => {
+                table.insert(id.clone(), toml::Value::String(dir));
+                LanguageConfig {
+                    default: Some(id),
+                    installs: table.clone(),
+                }
+            }
+        },
+        languages::Language::Erlang => LanguageConfig {
+            default: None,
+            installs: toml::Table::new(),
+        },
+    };
+
+    debug!("CONFIG: {:?}", language_config);
+
+    let new_config = Config {
+        gleam: Some(language_config),
+        ..config
+    };
+
+    debug!("CONFIG: {:?}", new_config);
+
+    let _ = write_config(config_file, new_config);
+}
+
+pub fn language_release_dir(language: languages::Language, id: String) -> PathBuf {
+    let cache_dir = dirs::cache_dir();
+    let release_dir = cache_dir
+        .unwrap()
+        .join("beamup")
+        .join(language.to_string())
+        .join(id);
+
+    let _ = std::fs::create_dir_all(&release_dir);
+
+    release_dir
 }
 
 pub fn home_config_file() -> String {
@@ -43,8 +118,14 @@ pub fn home_config_file() -> String {
     if !default_config.exists() {
         let config = Config {
             install_dir: default_cache.to_str().unwrap().to_string(),
-            erlang: None,
-            gleam: None,
+            erlang: Some(LanguageConfig {
+                default: None,
+                installs: toml::Table::new(),
+            }),
+            gleam: Some(LanguageConfig {
+                default: None,
+                installs: toml::Table::new(),
+            }),
         };
 
         write_config(default_config.to_str().unwrap().to_string(), config).unwrap();
