@@ -1,29 +1,45 @@
-use crate::languages;
+use crate::languages::Language;
+use color_eyre::{eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
 use console::{style, Emoji};
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 use std::io::Cursor;
+use std::path::Path;
+use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;
 
 // http://unicode.org/emoji/charts/full-emoji-list.html
 static CHECKMARK: Emoji = Emoji("✅", "✅ ");
-static FAIL: Emoji = Emoji("❌", "❌ ");
-static WARNING: Emoji = Emoji("🚫", "🚫");
+// static FAIL: Emoji = Emoji("❌", "❌ ");
+// static WARNING: Emoji = Emoji("🚫", "🚫");
 
-fn constants_to_gleam_suffix() -> Result<&'static str, &'static str> {
-    match (std::env::consts::ARCH, std::env::consts::OS) {
-        ("x86_64", "linux") => Ok("x86_64-unknown-linux-musl.tar.gz"),
-        ("aarch", "linux") => Ok("aarch-unknown-linux-musl.tar.gz"),
-        ("x86_64", "apple") => Ok("x86_64-apple-darwin.tar.gz"),
-        ("aarch", "apple") => Ok("aarch-apple-darwin.tar.gz"),
-        ("x86_64", "windows") => Ok("x86_64-pc-windows-msvc.zip"),
-        _ => Err("an unsupported architecture and operating system combo"),
-    }
+pub struct GithubRepo {
+    pub org: String,
+    pub repo: String,
 }
 
-pub fn print_releases(language: &languages::Language) {
+// pub trait Github {
+//     fn constants_to_asset_suffix() -> Result<&'static str, &'static str>;
+// }
+
+fn asset_name(language: &Language, tag: &str) -> Result<String> {
+    let suffix = match (std::env::consts::ARCH, std::env::consts::OS) {
+        ("x86_64", "linux") => "x86_64-unknown-linux-musl.tar.gz",
+        ("aarch", "linux") => "aarch-unknown-linux-musl.tar.gz",
+        ("x86_64", "apple") => "x86_64-apple-darwin.tar.gz",
+        ("aarch", "apple") => "aarch-apple-darwin.tar.gz",
+        ("x86_64", "windows") => "x86_64-pc-windows-msvc.zip",
+        (arch, os) => {
+            let e: Report = eyre!("no {language} asset found to support arch:{arch} os:{os}");
+            return Err(e);
+        }
+    };
+
+    Ok(format!("{language}-{tag}-{suffix}"))
+}
+
+pub fn print_releases(GithubRepo { org, repo }: &GithubRepo) {
     let rt = setup_tokio();
-    let (org, repo) = languages::get_github_org_repo(language);
 
     let releases = rt.block_on(async {
         let octocrab = octocrab::instance();
@@ -43,7 +59,12 @@ pub fn print_releases(language: &languages::Language) {
     }
 }
 
-pub fn download_asset(language: &languages::Language, tag: &str) -> Option<String> {
+pub fn download_asset(
+    language: &Language,
+    out_dir: &Path,
+    GithubRepo { org, repo }: &GithubRepo,
+    tag: &str,
+) -> Result<PathBuf, Report> {
     let started = Instant::now();
     let spinner_style = ProgressStyle::default_spinner()
         .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
@@ -56,11 +77,9 @@ pub fn download_asset(language: &languages::Language, tag: &str) -> Option<Strin
 
     let rt = setup_tokio();
 
-    let (org, repo) = languages::get_github_org_repo(language);
-
     pb.set_message(format!("Fetching release from {org}/{repo}"));
 
-    let octocrab::models::repos::Release { assets, .. } = if tag == "latest" {
+    let release_result = if tag == "latest" {
         debug!("Getting latest release from {}/{}", org, repo);
         rt.block_on(async {
             octocrab::instance()
@@ -68,7 +87,6 @@ pub fn download_asset(language: &languages::Language, tag: &str) -> Option<Strin
                 .releases()
                 .get_latest()
                 .await
-                .unwrap()
         })
     } else {
         debug!("Getting {} release from {}/{}", tag, org, repo);
@@ -78,36 +96,56 @@ pub fn download_asset(language: &languages::Language, tag: &str) -> Option<Strin
                 .releases()
                 .get_by_tag(tag)
                 .await
-                .unwrap()
         })
     };
 
-    let suffix = constants_to_gleam_suffix().unwrap();
+    let assets = match release_result {
+        Ok(octocrab::models::repos::Release { assets, .. }) => assets,
+        Err(err) => {
+            debug!("{err:?}");
+            return Err(err).wrap_err(format!(
+                "Failed fetching Github release {tag:} from {org:}/{repo:}"
+            ));
+        }
+    };
+
+    let asset_name = asset_name(language, tag)?;
     for asset in assets.iter() {
-        let octocrab::models::repos::Asset { name, .. } = asset;
+        debug!("{:?}", &asset);
+        let octocrab::models::repos::Asset { name, .. } = &asset;
         debug!("name {:?}", name);
-        if name.ends_with(suffix) {
-            debug!("asset {:?}", asset.browser_download_url);
+        if *name == asset_name {
+            let file = out_dir.join(repo.to_owned() + ".tar.gz");
+            let mut dest = std::fs::File::create(&file)
+                .wrap_err_with(|| format!("Failed to create asset download file {:?}", file))?;
+
+            debug!(
+                "Downloading asset {:?} to {:?}",
+                &asset.browser_download_url, file
+            );
+
             let target = asset.browser_download_url.clone();
 
-            let body = reqwest::blocking::get(target).unwrap().bytes().unwrap();
+            let body = reqwest::blocking::get(target).unwrap().bytes()?;
             let mut content = Cursor::new(body);
-            let file = repo.to_owned() + ".tar.gz";
-            let mut dest = std::fs::File::create(file.clone()).unwrap();
+
             std::io::copy(&mut content, &mut dest).unwrap();
-            return Some(file.to_string());
+
+            pb.println(format!(" {} Fetching release from {org}/{repo}", CHECKMARK));
+            pb.finish_and_clear();
+            println!(
+                "{} fetch in {}",
+                style("Finished").green().bold(),
+                HumanDuration(started.elapsed())
+            );
+
+            return Ok(file);
         }
     }
 
-    pb.println(format!(" {} Fetching release from {org}/{repo}", CHECKMARK));
-    pb.finish_and_clear();
-    println!(
-        "{} fetch in {}",
-        style("Finished").green().bold(),
-        HumanDuration(started.elapsed())
-    );
+    let e: Report = eyre!("Asset not found");
 
-    return None;
+    Err(e).wrap_err("Github release asset download failed")
 }
 
 fn setup_tokio() -> tokio::runtime::Runtime {

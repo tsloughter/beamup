@@ -1,6 +1,14 @@
+use crate::github::GithubRepo;
+use crate::languages;
+//use crate::languages::gleam;
 use clap::ValueEnum;
+use std::process;
 
-#[derive(ValueEnum, Debug, Clone)]
+pub mod gleam;
+
+pub const BIN_MAP: &[(&str, languages::Language)] = &[("gleam", languages::Language::Gleam)];
+
+#[derive(ValueEnum, Debug, Clone, PartialEq)]
 pub enum Language {
     Erlang,
     Gleam,
@@ -15,9 +23,19 @@ impl std::fmt::Display for Language {
     }
 }
 
-pub fn get_github_org_repo(language: &Language) -> (&str, &str) {
+pub fn get_github_repo(language: &Language) -> GithubRepo {
     match language {
-        Language::Erlang => ("erlang", "otp"),
-        Language::Gleam => ("gleam-lang", "gleam"),
+        Language::Gleam => gleam::get_github_repo(),
+        Language::Erlang => gleam::get_github_repo(),
+    }
+}
+
+pub fn bin_to_language(bin: &str) -> &languages::Language {
+    match languages::BIN_MAP.iter().find(|&(k, _)| *k == bin) {
+        Some((_, language)) => language,
+        _ => {
+            error!("No language to run command {bin} for found");
+            process::exit(1)
+        }
     }
 }

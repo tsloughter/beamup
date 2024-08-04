@@ -2,23 +2,23 @@ extern crate clap;
 
 #[macro_use]
 extern crate log;
-use clap::{Args, Command, CommandFactory, Parser, Subcommand, ValueEnum};
+use clap::{Args, Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
 use console::style;
 use log::{Level, LevelFilter, Record};
-use octocrab;
 use std::env;
 use std::io::Write;
-use std::path::*;
+use std::path::Path;
+use std::path::PathBuf;
 use std::process;
 mod config;
-use std::os::unix::fs::symlink;
-use tokio::runtime::Runtime;
+use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
 
 mod github;
-mod install;
 mod languages;
 mod run;
+
+mod cmd;
 
 #[derive(Parser, Debug)]
 #[command(version, about = "Manage BEAM language installs.", long_about = None)]
@@ -176,37 +176,11 @@ struct RepoRmArgs {
     name: String,
 }
 
-fn repo_or_default(maybe_repo: Option<String>) -> String {
-    match maybe_repo {
-        Some(repo) => repo,
-        None => "default".to_string(),
-    }
-}
-
-fn update_bins(language: &languages::Language) {
-    match language {
-        languages::Language::Gleam => {
-            let home_dir = dirs::home_dir().unwrap(); //config::lookup_cache_dir(&config);
-            let bin_dir = Path::new(&home_dir).join(".local").join("bin");
-            let _ = std::fs::create_dir_all(&bin_dir);
-
-            let link = Path::new(&bin_dir).join("gleam");
-            let beamup_exe = std::env::current_exe().unwrap();
-            debug!("linking {:?} to {:?}", link, beamup_exe);
-            let e = std::fs::remove_file(&link);
-            debug!("{:?}", e);
-            let r = symlink(beamup_exe, link);
-            debug!("{:?}", r)
-        }
-        _ => {}
-    };
-}
-
 fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
     generate(gen, cmd, cmd.get_name().to_string(), &mut std::io::stdout());
 }
 
-fn handle_command(bin_path: PathBuf) {
+fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
     let cli = Cli::parse();
 
     let (config_file, config) = match &cli.config {
@@ -218,19 +192,24 @@ fn handle_command(bin_path: PathBuf) {
         SubCommands::Generate(GenerateArgs { shell }) => {
             debug!("Generating completion file for {shell:?}...");
             print_completions(*shell, &mut Cli::command());
+            Ok(())
         }
         SubCommands::Languages => {
             debug!("running list");
             println!("Languages:\n");
             println!("erlang");
             println!("gleam");
+            Ok(())
         }
         SubCommands::List => {
             debug!("running list");
+            Ok(())
         }
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: repo={:?}", language);
-            github::print_releases(language);
+            let github_repo = languages::get_github_repo(language);
+            github::print_releases(&github_repo);
+            Ok(())
         }
         SubCommands::Install(InstallArgs {
             language,
@@ -243,17 +222,25 @@ fn handle_command(bin_path: PathBuf) {
                 "running install: {:?} {} {:?} {:?} {:?}",
                 language, release, id, repo, force
             );
+            let id = id.as_ref().unwrap_or(release);
 
-            let dir = install::install(language, release, id, repo, force);
-            update_bins(language);
+            let github_repo = languages::get_github_repo(language);
 
-            config::add_install(language, "latest".to_string(), dir, config_file, config);
+            let dir = cmd::install::run(language, &github_repo, release, id, repo, force)?;
+            cmd::update_links::run(Some(language));
+
+            config::add_install(language, id, dir, config_file, config);
+
+            Ok(())
         }
-        _ => {
-            debug!("CONFIG {:?}", config);
-            debug!("config_file: {}", config_file);
-            process::exit(1)
+        SubCommands::UpdateLinks => {
+            debug!("running update-links");
+
+            cmd::update_links::run(None);
+
+            Ok(())
         }
+        _ => process::exit(1),
     }
 }
 
@@ -280,7 +267,12 @@ fn setup_logging() {
         .init();
 }
 
-fn main() {
+fn main() -> Result<(), Report> {
+    // if std::env::var("RUST_SPANTRACE").is_err() {
+    //std::env::set_var("RUST_SPANTRACE", "0");
+    //}
+
+    // color_eyre::install()?;
     setup_logging();
 
     let mut args = env::args();
@@ -298,13 +290,26 @@ fn main() {
                 process::exit(1)
             }
         }
+
+        // let e: Report = eyre!("oh no this program is just bad!");
+
+        // Err(e).wrap_err("usage example successfully experienced a failure")
     } else {
-        if f.eq("gleam") {
-            run::run("gleam", args)
-        } else {
-            error!("No such command: {}", f.to_str().unwrap());
+        // if f.eq("gleam") {
+        //     run::run("gleam", args)
+        // } else {
+        //     error!("No such command: {}", f.to_str().unwrap());
+        // }
+
+        match languages::BIN_MAP.iter().find(|&(k, _)| *k == f) {
+            Some((c, _)) => {
+                let bin = Path::new(c).file_name().unwrap();
+                run::run(bin.to_str().unwrap(), args)
+            }
+            None => Err(eyre!("beamup found no such command: {f:?}")),
         }
-        // match build::BINS
+
+        // match languages::BIN_MAP
         //     .iter()
         //     .find(|&&x| f.eq(Path::new(x).file_name().unwrap()))
         // {
@@ -314,8 +319,8 @@ fn main() {
         //     }
         //     None => {
         //         error!("No such command: {}", f.to_str().unwrap());
-        // process::exit(1)
-        // }
+        //         process::exit(1)
+        //     }
         // }
     }
 }
