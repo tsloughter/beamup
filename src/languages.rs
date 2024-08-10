@@ -4,6 +4,7 @@ use crate::languages;
 use clap::ValueEnum;
 use std::process;
 
+pub mod erlang;
 pub mod gleam;
 
 pub const BIN_MAP: &[(&str, languages::Language)] = &[("gleam", languages::Language::Gleam)];
@@ -26,7 +27,7 @@ impl std::fmt::Display for Language {
 pub fn get_github_repo(language: &Language) -> GithubRepo {
     match language {
         Language::Gleam => gleam::get_github_repo(),
-        Language::Erlang => gleam::get_github_repo(),
+        Language::Erlang => erlang::get_github_repo(),
     }
 }
 

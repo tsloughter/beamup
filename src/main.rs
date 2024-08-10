@@ -14,6 +14,7 @@ use std::process;
 mod config;
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
 
+mod git;
 mod github;
 mod languages;
 mod run;
@@ -106,8 +107,15 @@ struct IdArgs {
 
 #[derive(Args, Debug)]
 struct BuildArgs {
-    /// Branch of tag of the repo
-    git_ref: String,
+    /// Language to build a release or branch of
+    language: languages::Language,
+
+    /// Release to build
+    release: Option<String>,
+
+    /// Branch or tag of the repo
+    #[arg(short, long)]
+    branch: Option<String>,
 
     /// Id to give the build
     #[arg(short, long)]
@@ -207,8 +215,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         }
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: repo={:?}", language);
-            let github_repo = languages::get_github_repo(language);
-            github::print_releases(&github_repo);
+            cmd::releases::run(language);
             Ok(())
         }
         SubCommands::Install(InstallArgs {
@@ -222,6 +229,8 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 "running install: {:?} {} {:?} {:?} {:?}",
                 language, release, id, repo, force
             );
+            // if no user supplied id then use the name of
+            // the release to install
             let id = id.as_ref().unwrap_or(release);
 
             let github_repo = languages::get_github_repo(language);
@@ -238,6 +247,29 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             cmd::update_links::run(None);
 
+            Ok(())
+        }
+        SubCommands::Build(BuildArgs {
+            language,
+            release,
+            branch,
+            id,
+            repo,
+            force,
+        }) => {
+            let git_ref = match release {
+                None => match branch {
+                    None => {
+                        return Err(eyre!(
+                            "build command needs a release argument or the -b <branch> option"
+                        ))
+                    }
+                    Some(branch) => git::GitRef::Branch(branch.to_owned()),
+                },
+                Some(release) => git::GitRef::Release(release.to_owned()),
+            };
+            let id = id.clone().unwrap_or(git_ref.to_string());
+            let _ = cmd::build::run(language, &git_ref, &id, repo, force)?;
             Ok(())
         }
         _ => process::exit(1),
@@ -268,10 +300,6 @@ fn setup_logging() {
 }
 
 fn main() -> Result<(), Report> {
-    // if std::env::var("RUST_SPANTRACE").is_err() {
-    //std::env::set_var("RUST_SPANTRACE", "0");
-    //}
-
     // color_eyre::install()?;
     setup_logging();
 
@@ -290,17 +318,7 @@ fn main() -> Result<(), Report> {
                 process::exit(1)
             }
         }
-
-        // let e: Report = eyre!("oh no this program is just bad!");
-
-        // Err(e).wrap_err("usage example successfully experienced a failure")
     } else {
-        // if f.eq("gleam") {
-        //     run::run("gleam", args)
-        // } else {
-        //     error!("No such command: {}", f.to_str().unwrap());
-        // }
-
         match languages::BIN_MAP.iter().find(|&(k, _)| *k == f) {
             Some((c, _)) => {
                 let bin = Path::new(c).file_name().unwrap();
@@ -308,19 +326,5 @@ fn main() -> Result<(), Report> {
             }
             None => Err(eyre!("beamup found no such command: {f:?}")),
         }
-
-        // match languages::BIN_MAP
-        //     .iter()
-        //     .find(|&&x| f.eq(Path::new(x).file_name().unwrap()))
-        // {
-        //     Some(x) => {
-        //         let bin = Path::new(x).file_name().unwrap();
-        //         beam::run(bin.to_str().unwrap(), args);
-        //     }
-        //     None => {
-        //         error!("No such command: {}", f.to_str().unwrap());
-        //         process::exit(1)
-        //     }
-        // }
     }
 }
