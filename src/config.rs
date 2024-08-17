@@ -29,7 +29,7 @@ fn get_language_config(language: &languages::Language, config: &Config) -> Langu
 
 fn get_default_id(lc: &Option<LanguageConfig>) -> Result<String> {
     match lc {
-        None => Err(eyre!("No install found for {:?}", lc)),
+        None => Err(eyre!("No default found for {:?}", lc)),
         Some(lc) => match &lc.default {
             None => Err(eyre!("No default found for language")),
             Some(default) => {
@@ -40,22 +40,60 @@ fn get_default_id(lc: &Option<LanguageConfig>) -> Result<String> {
     }
 }
 
+pub fn switch(language: &languages::Language, id: &String, config: &Config) -> Result<()> {
+    let language_config = get_language_config(language, config);
+
+    // we just look it up to return an error if it doesn't exist
+    let _ = lookup_install_by_id(id.clone(), Some(language_config))?;
+
+    let mut c = match local_config() {
+        None => toml::Table::new(),
+        Some(local_config) => local_config.clone(),
+    };
+
+    c.insert(language.to_string(), toml::Value::String(id.clone()));
+
+    let toml_string = toml::to_string(&c).unwrap();
+    let mut file = fs::File::create(".beamup.toml")?;
+    file.write_all(toml_string.as_bytes())?;
+    Ok(())
+}
+
+fn get_local_id(language_str: String, local_config: &Option<toml::Table>) -> Option<&toml::Value> {
+    match local_config {
+        None => None,
+        Some(lc) => lc.get(language_str.clone().as_str()),
+    }
+}
+
 pub fn install_to_use(bin: &str) -> Result<String> {
     let language = languages::bin_to_language(bin);
     let (_, config) = home_config()?;
+    let language_config = get_language_config(language, &config);
+    let local_config = local_config();
+    let language_str = language.to_string();
 
-    let _local_config = local_config();
+    let maybe_id = match get_local_id(language_str, &local_config) {
+        None => None,
+        Some(toml::Value::String(id)) => {
+            debug!("Using id from local config file");
+            Some(id)
+        }
+        _ => None,
+    };
 
-    match language {
-        languages::Language::Gleam => {
-            let id = get_default_id(&config.gleam)?;
-            lookup_install_by_id(id, config.gleam)
+    let id = match maybe_id {
+        None => {
+            debug!("No local config found. Using global config");
+            match language {
+                languages::Language::Gleam => get_default_id(&config.gleam)?,
+                languages::Language::Erlang => get_default_id(&config.erlang)?,
+            }
         }
-        languages::Language::Erlang => {
-            let id = get_default_id(&config.erlang)?;
-            lookup_install_by_id(id, config.erlang)
-        }
-    }
+        Some(id) => id.clone(),
+    };
+
+    lookup_install_by_id(id, Some(language_config))
 }
 
 fn lookup_install_by_id(id: String, lc: Option<LanguageConfig>) -> Result<String> {

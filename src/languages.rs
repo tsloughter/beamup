@@ -1,6 +1,5 @@
 use crate::github::GithubRepo;
 use crate::languages;
-//use crate::languages::gleam;
 use clap::ValueEnum;
 use std::process;
 

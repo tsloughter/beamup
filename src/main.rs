@@ -264,6 +264,11 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             cmd::default::run(language, id, config_file, config)
         }
+        SubCommands::Switch(IdArgs { language, id }) => {
+            debug!("running switch: {:?} {:?}", language, id);
+
+            cmd::switch::run(language, id, config)
+        }
         SubCommands::Build(BuildArgs {
             language,
             release,
