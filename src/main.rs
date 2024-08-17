@@ -212,10 +212,10 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             println!("gleam");
             Ok(())
         }
-        SubCommands::List => {
-            debug!("running list");
-            Ok(())
-        }
+        // SubCommands::List => {
+        //     debug!("running list");
+        //     Ok(())
+        // }
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: repo={:?}", language);
             cmd::releases::run(language);
@@ -257,15 +257,24 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             cmd::update_links::run(None);
 
+            info!("Updated links of language binaries to current beamup install");
+
             Ok(())
         }
         SubCommands::Default(IdArgs { language, id }) => {
             debug!("running default: {:?} {:?}", language, id);
 
+            info!(
+                "Setting default {:?} to use to install of id{}",
+                language, id
+            );
+
             cmd::default::run(language, id, config_file, config)
         }
         SubCommands::Switch(IdArgs { language, id }) => {
             debug!("running switch: {:?} {:?}", language, id);
+
+            info!("Switching local {:?} to use install of id={}", language, id);
 
             cmd::switch::run(language, id, config)
         }
@@ -301,6 +310,8 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
             let dir = cmd::build::run(language, &git_ref, &id, repo, force)?;
+
+            info!("Building {:?} for ref={} id={}", language, git_ref, id);
 
             cmd::update_links::run(Some(language));
             config::add_install(language, &id, dir, config_file, config);

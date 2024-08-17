@@ -19,6 +19,17 @@ using [cargo](https://doc.rust-lang.org/cargo/).
 
 ## Usage
 
+`beamup` will store configuration at `~/.config/beamup/config.toml` by default
+(no override is yet supported) and local configuration at `./.beamup.toml`.
+
+In `~/.local/bin/` there are binaries created as hard links to the `beamup`
+executable for each language command, i.e. `gleam`, `erlc`, `erl`, etc.
+
+Installs are currently done to `~/.cache/beamup/<language>/<id>`. I don't like
+that. It doesn't make sense to be under `.cache`. It may be moved under
+`~/.local` as well in the next release. Or somewhere else more appropriate by
+XDG standards.
+
 ### Install
 
 The `build` command will compile a release and `install` will fetch a binary
@@ -63,7 +74,7 @@ with an entry like `erlang = "OTP-25.3.2.7"` and running an Erlang command like
 
 BEAMUp is the successor to [erlup](https://github.com/tsloughter/erlup) and has
 important differences. First, the configuration is TOML and not INI, see `
-~/.config/beamup/config` and commands require specifying a language to work on,
+~/.config/beamup/config.toml` and commands require specifying a language to work on,
 for example:
 
 ```

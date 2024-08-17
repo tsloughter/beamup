@@ -7,6 +7,9 @@ use std::process;
 
 use crate::languages;
 
+static LOCAL_CONFIG_FILE: &'static str = ".beamup.toml";
+static CONFIG_FILE: &'static str = "config.toml";
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
     install_dir: String,
@@ -54,7 +57,7 @@ pub fn switch(language: &languages::Language, id: &str, config: &Config) -> Resu
     c.insert(language.to_string(), toml::Value::String(id.to_string()));
 
     let toml_string = toml::to_string(&c).unwrap();
-    let mut file = fs::File::create(".beamup.toml")?;
+    let mut file = fs::File::create(LOCAL_CONFIG_FILE)?;
     file.write_all(toml_string.as_bytes())?;
     Ok(())
 }
@@ -210,7 +213,7 @@ pub fn home_config_file() -> Result<String> {
         }
     };
 
-    let default_config = config_dir.join("beamup").join("config");
+    let default_config = config_dir.join("beamup").join(CONFIG_FILE);
     let default_cache = cache_dir.join("beamup");
 
     let _ = fs::create_dir_all(config_dir.join("beamup"));
@@ -240,7 +243,7 @@ pub fn home_config_file() -> Result<String> {
 }
 
 fn local_config() -> Option<toml::Table> {
-    match fs::read_to_string(".beamup.toml") {
+    match fs::read_to_string(LOCAL_CONFIG_FILE) {
         Ok(local_config_str) => toml::from_str(local_config_str.as_str()).ok(),
         _ => None,
     }
