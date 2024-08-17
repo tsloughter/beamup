@@ -4,6 +4,9 @@ version = "0.1.1"
 edition = "2021"
 authors = ["Tristan Sloughter <tristan@sloughter.dev>"]
 repository = "https://github.com/tsloughter/beamup"
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/tsloughter/beamup"
 
 [dependencies]
 clap = {version = "4.5.8", features = ["derive", "color"]}
