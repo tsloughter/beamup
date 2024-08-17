@@ -1,7 +1,6 @@
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io;
 use std::io::Write;
 use std::path::*;
 use std::process;
@@ -28,23 +27,20 @@ fn get_language_config(language: &languages::Language, config: &Config) -> Langu
     }
 }
 
-fn get_default(lc: &Option<LanguageConfig>) -> String {
+fn get_default_id(lc: &Option<LanguageConfig>) -> Result<String> {
     match lc {
-        None => {
-            error!("No install found for {:?}", lc);
-            process::exit(1)
-        }
+        None => Err(eyre!("No install found for {:?}", lc)),
         Some(lc) => match &lc.default {
-            None => {
-                error!("No default found for language");
-                process::exit(1);
+            None => Err(eyre!("No default found for language")),
+            Some(default) => {
+                debug!("Found default {:?}", default);
+                Ok(default.to_string())
             }
-            Some(default) => default.to_string(),
         },
     }
 }
 
-pub fn install_to_use(bin: &str) -> Result<String, Report> {
+pub fn install_to_use(bin: &str) -> Result<String> {
     let language = languages::bin_to_language(bin);
     let (_, config) = home_config()?;
 
@@ -52,25 +48,61 @@ pub fn install_to_use(bin: &str) -> Result<String, Report> {
 
     match language {
         languages::Language::Gleam => {
-            let id = get_default(&config.gleam);
+            let id = get_default_id(&config.gleam)?;
             lookup_install_by_id(id, config.gleam)
         }
         languages::Language::Erlang => {
-            let id = get_default(&config.gleam);
+            let id = get_default_id(&config.erlang)?;
             lookup_install_by_id(id, config.erlang)
         }
     }
 }
 
 fn lookup_install_by_id(id: String, lc: Option<LanguageConfig>) -> Result<String> {
+    debug!("Looking up install for {}", id);
     match lc {
         None => Err(eyre!("No config found")),
         Some(language_config) => match language_config.installs.get(&id) {
             None => Err(eyre!("No install found for id {id}")),
-            Some(toml::Value::String(dir)) => Ok(dir.to_owned()),
+            Some(toml::Value::String(dir)) => {
+                debug!("Found install in directory {}", dir);
+                Ok(dir.to_owned())
+            }
             _ => Err(eyre!("Bad directory found in installs for id {id}")),
         },
     }
+}
+
+pub fn set_default(
+    language: &languages::Language,
+    id: &String,
+    config_file: String,
+    config: Config,
+) -> Result<(), Report> {
+    debug!("set default {:?} to use to {:?}", language, id);
+    let lc = get_language_config(language, &config);
+    let LanguageConfig {
+        default: _,
+        installs: installs_table,
+    } = lc;
+
+    let new_lc = LanguageConfig {
+        default: Some(id.to_owned()),
+        installs: installs_table.clone(),
+    };
+
+    let new_config = match language {
+        languages::Language::Gleam => Config {
+            gleam: Some(new_lc),
+            ..config
+        },
+        languages::Language::Erlang => Config {
+            erlang: Some(new_lc),
+            ..config
+        },
+    };
+
+    write_config(config_file, new_config)
 }
 
 pub fn update_language_config(id: &String, dir: String, lc: LanguageConfig) -> LanguageConfig {
@@ -187,7 +219,7 @@ pub fn read_config(file: String) -> Config {
     config
 }
 
-pub fn write_config(file_path: String, config: Config) -> io::Result<()> {
+pub fn write_config(file_path: String, config: Config) -> Result<()> {
     let toml_string = toml::to_string(&config).unwrap();
     let mut file = fs::File::create(file_path)?;
     file.write_all(toml_string.as_bytes())?;

@@ -101,6 +101,9 @@ struct RepoArgs {
 
 #[derive(Args, Debug)]
 struct IdArgs {
+    /// Language to use
+    language: languages::Language,
+
     /// Id of the install
     id: String,
 }
@@ -255,6 +258,11 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             cmd::update_links::run(None);
 
             Ok(())
+        }
+        SubCommands::Default(IdArgs { language, id }) => {
+            debug!("running default: {:?} {:?}", language, id);
+
+            cmd::default::run(language, id, config_file, config)
         }
         SubCommands::Build(BuildArgs {
             language,
