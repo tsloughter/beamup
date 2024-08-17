@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::*;
-use std::process;
 
 use crate::languages;
 
@@ -70,7 +69,7 @@ fn get_local_id(language_str: String, local_config: &Option<toml::Table>) -> Opt
 }
 
 pub fn install_to_use(bin: &str) -> Result<String> {
-    let language = languages::bin_to_language(bin);
+    let language = languages::bin_to_language(bin)?;
     let (_, config) = home_config()?;
     let language_config = get_language_config(language, &config);
     let local_config = local_config();
@@ -200,17 +199,11 @@ pub fn language_release_dir(language: languages::Language, id: String) -> PathBu
 pub fn home_config_file() -> Result<String> {
     let config_dir = match dirs::config_dir() {
         Some(d) => d,
-        None => {
-            error!("no home directory available");
-            process::exit(1)
-        }
+        None => return Err(eyre!("no home directory available")),
     };
     let cache_dir = match dirs::cache_dir() {
         Some(d) => d,
-        None => {
-            error!("no home directory available");
-            process::exit(1)
-        }
+        None => return Err(eyre!("no home directory available")),
     };
 
     let default_config = config_dir.join("beamup").join(CONFIG_FILE);

@@ -1,7 +1,7 @@
 use crate::github::GithubRepo;
 use crate::languages;
 use clap::ValueEnum;
-use std::process;
+use color_eyre::{eyre::eyre, eyre::Result};
 
 pub mod erlang;
 pub mod gleam;
@@ -43,12 +43,9 @@ pub fn get_github_repo(language: &Language) -> GithubRepo {
     }
 }
 
-pub fn bin_to_language(bin: &str) -> &languages::Language {
+pub fn bin_to_language(bin: &str) -> Result<&languages::Language> {
     match languages::BIN_MAP.iter().find(|&(k, _)| *k == bin) {
-        Some((_, language)) => language,
-        _ => {
-            error!("No language to run command {bin} for found");
-            process::exit(1)
-        }
+        Some((_, language)) => Ok(language),
+        _ => Err(eyre!("No language to run command {bin} for found")),
     }
 }
