@@ -10,7 +10,7 @@ to come next.
 An install script is provided:
 
 ```
-...
+$ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/tsloughter/beamup/releases/download/v0.1.0/beamup-installer.sh | sh
 ```
 
 Binaries can also be downloaded from the [releases on
