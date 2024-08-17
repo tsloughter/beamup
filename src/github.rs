@@ -24,9 +24,9 @@ fn asset_name(language: &Language, tag: &str) -> Result<String> {
     let suffix = match language {
         Language::Gleam => match (std::env::consts::ARCH, std::env::consts::OS) {
             ("x86_64", "linux") => "x86_64-unknown-linux-musl.tar.gz",
-            ("aarch", "linux") => "aarch-unknown-linux-musl.tar.gz",
-            ("x86_64", "apple") => "x86_64-apple-darwin.tar.gz",
-            ("aarch", "apple") => "aarch-apple-darwin.tar.gz",
+            ("aarch64", "linux") => "aarch64-unknown-linux-musl.tar.gz",
+            ("x86_64", "macos") => "x86_64-apple-darwin.tar.gz",
+            ("aarch64", "macos") => "aarch64-apple-darwin.tar.gz",
             ("x86_64", "windows") => "x86_64-pc-windows-msvc.zip",
             (arch, os) => {
                 let e: Report = eyre!("no {language} asset found to support arch:{arch} os:{os}");
