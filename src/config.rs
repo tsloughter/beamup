@@ -40,18 +40,18 @@ fn get_default_id(lc: &Option<LanguageConfig>) -> Result<String> {
     }
 }
 
-pub fn switch(language: &languages::Language, id: &String, config: &Config) -> Result<()> {
+pub fn switch(language: &languages::Language, id: &str, config: &Config) -> Result<()> {
     let language_config = get_language_config(language, config);
 
     // we just look it up to return an error if it doesn't exist
-    let _ = lookup_install_by_id(id.clone(), Some(language_config))?;
+    let _ = lookup_install_by_id(id.to_string(), Some(language_config))?;
 
     let mut c = match local_config() {
         None => toml::Table::new(),
         Some(local_config) => local_config.clone(),
     };
 
-    c.insert(language.to_string(), toml::Value::String(id.clone()));
+    c.insert(language.to_string(), toml::Value::String(id.to_string()));
 
     let toml_string = toml::to_string(&c).unwrap();
     let mut file = fs::File::create(".beamup.toml")?;
@@ -241,7 +241,7 @@ pub fn home_config_file() -> Result<String> {
 
 fn local_config() -> Option<toml::Table> {
     match fs::read_to_string(".beamup.toml") {
-        Ok(local_config_str) => toml::from_str(local_config_str.as_str()).map_or(None, |x| Some(x)),
+        Ok(local_config_str) => toml::from_str(local_config_str.as_str()).ok(),
         _ => None,
     }
 }
