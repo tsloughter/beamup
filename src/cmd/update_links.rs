@@ -11,17 +11,18 @@ pub fn run(maybe_language: Option<&languages::Language>) {
             let link = Path::new(&bin_dir).join(b);
             let beamup_exe = std::env::current_exe().unwrap();
             debug!("linking {:?} to {:?}", link, beamup_exe);
-            match std::fs::remove_file(&link) {
-                Ok(()) => match std::fs::hard_link(beamup_exe, &link) {
-                    Ok(()) => {}
-                    Err(e) => {
-                        error!("Failed to symlink {:?}: {}", link, e);
-                    }
-                },
+            let _ = std::fs::remove_file(&link);
+            // Ok(()) =>
+            match std::fs::hard_link(beamup_exe, &link) {
+                Ok(()) => {}
                 Err(e) => {
-                    error!("Failed to remove symlink {:?}: {}", link, e);
+                    error!("Failed to symlink {:?}: {}", link, e);
                 }
             }
+            // Err(e) => {
+            //         error!("Failed to remove symlink {:?}: {}", link, e);
+            //     }
+            // }
         }
     }
 }

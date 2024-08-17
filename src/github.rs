@@ -7,7 +7,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;
-use ureq;
 
 // http://unicode.org/emoji/charts/full-emoji-list.html
 static CHECKMARK: Emoji = Emoji("✅", "✅ ");
@@ -187,7 +186,7 @@ pub fn download_asset(
                 format!("Downloading release source tarball from {org}/{repo}"),
             )?;
 
-            return Ok(file);
+            Ok(file)
         }
         None => {
             let e: Report = eyre!("Asset not found");

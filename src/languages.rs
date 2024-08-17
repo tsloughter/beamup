@@ -7,7 +7,20 @@ use std::process;
 pub mod erlang;
 pub mod gleam;
 
-pub const BIN_MAP: &[(&str, languages::Language)] = &[("gleam", languages::Language::Gleam)];
+pub const BIN_MAP: &[(&str, languages::Language)] = &[
+    ("gleam", languages::Language::Gleam),
+    ("ct_run", languages::Language::Erlang),
+    ("dialyzer", languages::Language::Erlang),
+    ("epmd", languages::Language::Erlang),
+    ("erl", languages::Language::Erlang),
+    ("erlc", languages::Language::Erlang),
+    ("erl_call", languages::Language::Erlang),
+    ("escript", languages::Language::Erlang),
+    ("run_erl", languages::Language::Erlang),
+    ("run_test", languages::Language::Erlang),
+    ("to_erl", languages::Language::Erlang),
+    ("typer", languages::Language::Erlang),
+];
 
 #[derive(ValueEnum, Debug, Clone, PartialEq)]
 pub enum Language {

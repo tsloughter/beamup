@@ -193,7 +193,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
     let (config_file, config) = match &cli.config {
         Some(file) => (file.to_owned(), config::read_config(file.to_owned())),
-        None => config::home_config(),
+        None => config::home_config()?,
     };
 
     match &cli.subcommand {
@@ -269,10 +269,14 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 Some(release) => git::GitRef::Release(release.to_owned()),
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
-            let _ = cmd::build::run(language, &git_ref, &id, repo, force)?;
+            let dir = cmd::build::run(language, &git_ref, &id, repo, force)?;
+
+            cmd::update_links::run(Some(language));
+            config::add_install(language, &id, dir, config_file, config);
+
             Ok(())
         }
-        _ => process::exit(1),
+        _ => Err(eyre!("subcommand not implemented yet")),
     }
 }
 

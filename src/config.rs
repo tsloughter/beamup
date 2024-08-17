@@ -46,7 +46,9 @@ fn get_default(lc: &Option<LanguageConfig>) -> String {
 
 pub fn install_to_use(bin: &str) -> Result<String, Report> {
     let language = languages::bin_to_language(bin);
-    let (_, config) = home_config();
+    let (_, config) = home_config()?;
+
+    let _local_config = local_config();
 
     match language {
         languages::Language::Gleam => {
@@ -95,9 +97,15 @@ pub fn add_install(
 
     let updated_language_config = update_language_config(id, dir, language_config.clone());
 
-    let new_config = Config {
-        gleam: Some(updated_language_config),
-        ..config
+    let new_config = match language {
+        languages::Language::Gleam => Config {
+            gleam: Some(updated_language_config),
+            ..config
+        },
+        languages::Language::Erlang => Config {
+            erlang: Some(updated_language_config),
+            ..config
+        },
     };
 
     let _ = write_config(config_file, new_config);
@@ -116,7 +124,7 @@ pub fn language_release_dir(language: languages::Language, id: String) -> PathBu
     release_dir
 }
 
-pub fn home_config_file() -> String {
+pub fn home_config_file() -> Result<String> {
     let config_dir = match dirs::config_dir() {
         Some(d) => d,
         None => {
@@ -151,19 +159,26 @@ pub fn home_config_file() -> String {
             }),
         };
 
-        write_config(default_config.to_str().unwrap().to_string(), config).unwrap();
+        write_config(default_config.to_str().unwrap().to_string(), config)?;
         info!(
             "Created a default config at {:?}",
             default_config.to_owned()
         );
     }
 
-    default_config.to_str().unwrap().to_string()
+    Ok(default_config.to_str().unwrap().to_string())
 }
 
-pub fn home_config() -> (String, Config) {
-    let config_file = home_config_file();
-    (config_file.to_owned(), read_config(config_file))
+fn local_config() -> Option<toml::Table> {
+    match fs::read_to_string(".beamup.toml") {
+        Ok(local_config_str) => toml::from_str(local_config_str.as_str()).map_or(None, |x| Some(x)),
+        _ => None,
+    }
+}
+
+pub fn home_config() -> Result<(String, Config)> {
+    let config_file = home_config_file()?;
+    Ok((config_file.to_owned(), read_config(config_file)))
 }
 
 pub fn read_config(file: String) -> Config {

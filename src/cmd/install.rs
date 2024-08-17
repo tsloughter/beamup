@@ -16,7 +16,7 @@ pub fn run(
     _force: &Option<bool>,
 ) -> Result<String, Report> {
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let file = download_asset(language, &out_dir.path(), &github_repo, release)?;
+    let file = download_asset(language, out_dir.path(), github_repo, release)?;
 
     let tar_gz = File::open(&file).wrap_err_with(|| {
         format!(
