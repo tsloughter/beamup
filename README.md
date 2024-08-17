@@ -1,5 +1,7 @@
 # BEAMUp
 
+[![Release](https://github.com/tsloughter/beamup/actions/workflows/release.yml/badge.svg)](https://github.com/tsloughter/beamup/actions/workflows/release.yml)
+
 A tool for installing languages that run on the [Erlang
 VM](https://www.erlang.org/) (BEAM) on related components.
 As of now only Erlang and [Gleam](https://gleam.run/) are supported, with [Elixir](http://elixir-lang.org/)
