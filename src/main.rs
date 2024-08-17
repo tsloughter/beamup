@@ -229,6 +229,13 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 "running install: {:?} {} {:?} {:?} {:?}",
                 language, release, id, repo, force
             );
+
+            if *language != languages::Language::Gleam {
+                return Err(eyre!(
+                    "install command not supported yet for language {language:?}"
+                ));
+            }
+
             // if no user supplied id then use the name of
             // the release to install
             let id = id.as_ref().unwrap_or(release);
@@ -257,6 +264,17 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             repo,
             force,
         }) => {
+            debug!(
+                "running build: {:?} {:?} {:?} {:?} {:?} {:?}",
+                language, release, branch, id, repo, force
+            );
+
+            if *language != languages::Language::Erlang {
+                return Err(eyre!(
+                    "build command not supported yet for language {language:?}"
+                ));
+            }
+
             let git_ref = match release {
                 None => match branch {
                     None => {
