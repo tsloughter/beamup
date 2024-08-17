@@ -7,8 +7,8 @@ use std::process;
 
 use crate::languages;
 
-static LOCAL_CONFIG_FILE: &'static str = ".beamup.toml";
-static CONFIG_FILE: &'static str = "config.toml";
+static LOCAL_CONFIG_FILE: &str = ".beamup.toml";
+static CONFIG_FILE: &str = "config.toml";
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
