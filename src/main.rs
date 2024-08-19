@@ -309,7 +309,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 Some(release) => git::GitRef::Release(release.to_owned()),
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
-            let dir = cmd::build::run(language, &git_ref, &id, repo, force)?;
+            let dir = cmd::build::run(language, &git_ref, &id, repo, force, &config)?;
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
 
