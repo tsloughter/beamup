@@ -19,6 +19,7 @@ pub struct Config {
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct LanguageConfig {
     default: Option<String>,
+    default_build_options: Option<String>,
     installs: toml::Table,
 }
 
@@ -113,6 +114,17 @@ fn lookup_install_by_id(id: String, lc: Option<LanguageConfig>) -> Result<String
     }
 }
 
+pub fn lookup_default_build_options(language: &languages::Language, config: &Config) -> String {
+    debug!("Looking up default configure options for {:?}", language);
+
+    let lc = get_language_config(language, config);
+
+    match lc.default_build_options {
+        None => "".to_string(),
+        Some(options) => options.to_owned(),
+    }
+}
+
 pub fn set_default(
     language: &languages::Language,
     id: &String,
@@ -124,11 +136,13 @@ pub fn set_default(
     let LanguageConfig {
         default: _,
         installs: installs_table,
+        default_build_options,
     } = lc;
 
     let new_lc = LanguageConfig {
         default: Some(id.to_owned()),
         installs: installs_table.clone(),
+        default_build_options: default_build_options.clone(),
     };
 
     let new_config = match language {
@@ -149,11 +163,13 @@ pub fn update_language_config(id: &String, dir: String, lc: LanguageConfig) -> L
     let LanguageConfig {
         default: _,
         installs: mut table,
+        default_build_options,
     } = lc;
     table.insert(id.clone(), toml::Value::String(dir));
     LanguageConfig {
         default: Some(id.to_owned()),
         installs: table.clone(),
+        default_build_options: default_build_options.clone(),
     }
 }
 
@@ -218,10 +234,12 @@ pub fn home_config_file() -> Result<String> {
             erlang: Some(LanguageConfig {
                 default: None,
                 installs: toml::Table::new(),
+                default_build_options: None,
             }),
             gleam: Some(LanguageConfig {
                 default: None,
                 installs: toml::Table::new(),
+                default_build_options: None,
             }),
         };
 

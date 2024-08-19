@@ -32,6 +32,22 @@ that. It doesn't make sense to be under `.cache`. It may be moved under
 `~/.local` as well in the next release. Or somewhere else more appropriate by
 XDG standards.
 
+For languages that support building from source you can pass additional build
+options (like what is passed to `./configure` for Erlang) with either the
+environment variable `BEAMUP_BUILD_OPTIONS` or adding `default_build_options` to
+the configuration under the language section:
+
+```
+[erlang]
+default_build_options = "--enable-lock-counter"
+```
+
+Or:
+
+```
+BEAMUP_BUILD_OPTIONS="--enable-lock-counter" beamup build erlang -i latest-lock-counter latest
+```
+
 ### Install
 
 The `build` command will compile a release and `install` will fetch a binary

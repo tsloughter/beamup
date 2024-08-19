@@ -6,6 +6,7 @@ use color_eyre::{eyre::Result, eyre::WrapErr};
 use console::Emoji;
 use flate2::read::GzDecoder;
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
+use std::env;
 use std::fs::File;
 use std::path::Path;
 use std::process::Command;
@@ -48,8 +49,16 @@ pub fn run(
     id: &String,
     _repo: &Option<String>,
     _force: &Option<bool>,
+    config: &config::Config,
 ) -> Result<String> {
     debug!("Building {language} from source from git ref={git_ref} with id={id}");
+
+    //maybe grab configure options from environment
+    let key = "BEAMUP_BUILD_OPTIONS";
+    let user_build_options = match env::var(key) {
+        Ok(options) => options,
+        _ => config::lookup_default_build_options(language, config),
+    };
 
     let github_repo = get_github_repo(language);
     let release = git_ref.to_string();
@@ -76,12 +85,12 @@ pub fn run(
     let binding = paths.next().unwrap()?.path();
     let unpacked_dir: &Path = binding.as_path();
     std::fs::create_dir_all(&release_dir)?;
-    build(&release_dir, unpacked_dir, "")?;
+    build(&release_dir, unpacked_dir, user_build_options.as_str())?;
 
     Ok(release_dir.into_os_string().into_string().unwrap())
 }
 
-fn build(install_dir: &Path, dir: &Path, user_configure_options0: &str) -> Result<()> {
+fn build(install_dir: &Path, dir: &Path, user_build_options0: &str) -> Result<()> {
     let num_cpus = num_cpus::get().to_string();
     let spinner_style = ProgressStyle::default_spinner()
         .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
@@ -95,21 +104,21 @@ fn build(install_dir: &Path, dir: &Path, user_configure_options0: &str) -> Resul
     // split the configure options into a vector of String in a shell sensitive way
     // eg.
     //  from:
-    //      user_configure_options0: --without-wx --without-observer --without-odbc --without-debugger --without-et --enable-builtin-zlib --without-javac CFLAGS="-g -O2 -march=native"
+    //      user_build_options0: --without-wx --without-observer --without-odbc --without-debugger --without-et --enable-builtin-zlib --without-javac CFLAGS="-g -O2 -march=native"
     //  to:
-    //      user_configure_options: ["--without-wx", "--without-observer", "--without-odbc", "--without-debugger", "--without-et", "--enable-builtin-zlib", "--without-javac", "CFLAGS=-g -O2 -march=native"]
-    let mut user_configure_options: Vec<String> = shell_words::split(user_configure_options0)?;
+    //      user_build_options: ["--without-wx", "--without-observer", "--without-odbc", "--without-debugger", "--without-et", "--enable-builtin-zlib", "--without-javac", "CFLAGS=-g -O2 -march=native"]
+    let mut user_build_options: Vec<String> = shell_words::split(user_build_options0)?;
     // basic configure options must always include a prefix
-    let mut configure_options = vec![
+    let mut build_options = vec![
         "--prefix".to_string(),
         install_dir.to_str().unwrap().to_string(),
     ];
     // append the user defined options
-    configure_options.append(&mut user_configure_options);
+    build_options.append(&mut user_build_options);
 
     // declare the build pipeline steps
     let build_steps: [BuildStep; 7] = [
-        BuildStep::Exec("./configure", configure_options),
+        BuildStep::Exec("./configure", build_options),
         BuildStep::Check(Box::new(|context| {
             if has_openssl(context.src_dir) {
                 CheckResult::Success
