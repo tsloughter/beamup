@@ -6,6 +6,7 @@ use color_eyre::{eyre::eyre, eyre::Result};
 pub mod erlang;
 pub mod gleam;
 
+#[cfg(unix)]
 pub const BIN_MAP: &[(&str, languages::Language)] = &[
     ("gleam", languages::Language::Gleam),
     ("ct_run", languages::Language::Erlang),
@@ -19,6 +20,22 @@ pub const BIN_MAP: &[(&str, languages::Language)] = &[
     ("run_test", languages::Language::Erlang),
     ("to_erl", languages::Language::Erlang),
     ("typer", languages::Language::Erlang),
+];
+
+#[cfg(windows)]
+pub const BIN_MAP: &[(&str, languages::Language)] = &[
+    ("gleam.exe", languages::Language::Gleam),
+    ("ct_run.exe", languages::Language::Erlang),
+    ("dialyzer.exe", languages::Language::Erlang),
+    ("epmd.exe", languages::Language::Erlang),
+    ("erl.exe", languages::Language::Erlang),
+    ("erlc.exe", languages::Language::Erlang),
+    ("erl_call.exe", languages::Language::Erlang),
+    ("escript.exe", languages::Language::Erlang),
+    ("run_erl.exe", languages::Language::Erlang),
+    ("run_test.exe", languages::Language::Erlang),
+    ("to_erl.exe", languages::Language::Erlang),
+    ("typer.exe", languages::Language::Erlang),
 ];
 
 #[derive(ValueEnum, Debug, Clone, PartialEq)]

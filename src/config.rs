@@ -200,7 +200,7 @@ pub fn add_install(
 }
 
 pub fn language_release_dir(language: languages::Language, id: String) -> PathBuf {
-    let cache_dir = dirs::cache_dir();
+    let cache_dir = dirs::data_local_dir();
     let release_dir = cache_dir
         .unwrap()
         .join("beamup")
@@ -212,12 +212,22 @@ pub fn language_release_dir(language: languages::Language, id: String) -> PathBu
     release_dir
 }
 
+pub fn bin_dir() -> PathBuf {
+    match dirs::executable_dir() {
+        Some(bin_dir) => bin_dir,
+        None => {
+            let home_dir = dirs::home_dir().unwrap();
+            Path::new(&home_dir).join(".beamup").join("bin")
+        }
+    }
+}
+
 pub fn home_config_file() -> Result<String> {
-    let config_dir = match dirs::config_dir() {
+    let config_dir = match dirs::config_local_dir() {
         Some(d) => d,
         None => return Err(eyre!("no home directory available")),
     };
-    let cache_dir = match dirs::cache_dir() {
+    let cache_dir = match dirs::data_local_dir() {
         Some(d) => d,
         None => return Err(eyre!("no home directory available")),
     };

@@ -1,11 +1,11 @@
+use crate::config;
 use crate::languages;
 use std::path::Path;
 
 pub fn run(maybe_language: Option<&languages::Language>) {
     for (b, l) in languages::BIN_MAP.iter() {
         if maybe_language.is_none() || maybe_language.is_some_and(|x| *x == *l) {
-            let home_dir = dirs::home_dir().unwrap(); //config::lookup_cache_dir(&config);
-            let bin_dir = Path::new(&home_dir).join(".local").join("bin");
+            let bin_dir = config::bin_dir();
             let _ = std::fs::create_dir_all(&bin_dir);
 
             let link = Path::new(&bin_dir).join(b);

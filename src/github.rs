@@ -171,7 +171,7 @@ pub fn download_asset(
 
     match assets.iter().find(|&asset| *asset.name == asset_name) {
         Some(asset) => {
-            let file = out_dir.join(repo.to_owned() + ".tar.gz");
+            let file = out_dir.join(asset_name);
             let dest = std::fs::File::create(&file)
                 .wrap_err_with(|| format!("Failed to create asset download file {:?}", file))?;
 
