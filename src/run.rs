@@ -28,6 +28,7 @@ fn exec(cmd: &mut Command) -> Result<(), Report> {
 // thanks rustup command.rs
 #[cfg(windows)]
 fn exec(cmd: &mut Command) -> Result<(), Report> {
+    use color_eyre::eyre::eyre;
     use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
     use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
 
@@ -37,12 +38,10 @@ fn exec(cmd: &mut Command) -> Result<(), Report> {
     }
     unsafe {
         if SetConsoleCtrlHandler(Some(ctrlc_handler), TRUE) == FALSE {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Unable to set console handler",
-            ));
+            return Err(eyre!("Unable to set console handler",));
         }
     }
 
-    cmd.status()
+    let _ = cmd.status();
+    Ok(())
 }

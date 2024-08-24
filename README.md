@@ -3,9 +3,9 @@
 [![Release](https://github.com/tsloughter/beamup/actions/workflows/release.yml/badge.svg)](https://github.com/tsloughter/beamup/actions/workflows/release.yml)
 
 A tool for installing languages that run on the [Erlang
-VM](https://www.erlang.org/) (BEAM) on related components.
-As of now only Erlang and [Gleam](https://gleam.run/) are supported, with [Elixir](http://elixir-lang.org/)
-to come next.
+VM](https://www.erlang.org/) (BEAM) and related components. As of now only
+Erlang and [Gleam](https://gleam.run/) are supported, with
+[Elixir](http://elixir-lang.org/) to come next.
 
 ## Install
 
@@ -21,16 +21,30 @@ using [cargo](https://doc.rust-lang.org/cargo/).
 
 ## Usage
 
-`beamup` will store configuration at `~/.config/beamup/config.toml` by default
-(no override is yet supported) and local configuration at `./.beamup.toml`.
+`beamup` will store configuration at:
 
-In `~/.local/bin/` there are binaries created as hard links to the `beamup`
-executable for each language command, i.e. `gleam`, `erlc`, `erl`, etc.
+- Linux: `~/.config/beamup/config.toml` 
+- Mac: `~/Library/Application Support/beamup/config.toml`
+- Windows: `~\AppData\Local\beamup\config.toml`
 
-Installs are currently done to `~/.cache/beamup/<language>/<id>`. I don't like
-that. It doesn't make sense to be under `.cache`. It may be moved under
-`~/.local` as well in the next release. Or somewhere else more appropriate by
-XDG standards.
+Local configuration to set a language/component to use in a specific directory
+is in `./.beamup.toml`.
+
+Hard links to the `beamup` executable for each language command, i.e. `gleam`,
+`erlc`, `erl`, etc, is created in the following directory:
+
+- Linux: `$XDG_BIN_HOME` or `$XDG_DATA_HOME/../bin` or `$HOME/.local/bin`
+- Mac: `~/.beamup/bin`
+- Windows: `~\.beamup\bin`
+
+This directory must be added to your `PATH` for `beamup` installs to work.
+
+Installs are currently done to the applications data directory. This defaults
+to:
+
+- Linux: `~/.local/share/beamup/<language>/<id>`
+- Mac: `~/Library/Application Support/beamup/<language>/<id>`
+- Windows: `~\AppData\Local\beamup\<language>\<id>`
 
 For languages that support building from source you can pass additional build
 options (like what is passed to `./configure` for Erlang) with either the

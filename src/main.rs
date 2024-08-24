@@ -353,7 +353,7 @@ fn main() -> Result<(), Report> {
     let binname = args.next().unwrap();
     let f = Path::new(&binname).file_name().unwrap();
 
-    if f.eq("beamup") {
+    if f.eq("beamup") || f.eq("beamup.exe") {
         match env::current_exe() {
             Ok(bin_path) => {
                 debug!("current bin path: {}", bin_path.display());
