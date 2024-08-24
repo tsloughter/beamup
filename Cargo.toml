@@ -1,12 +1,19 @@
 [package]
 name = "beamup"
 version = "0.2.0"
+description = " Install and control active BEAM languages and components"
 edition = "2021"
 authors = ["Tristan Sloughter <tristan@sloughter.dev>"]
 repository = "https://github.com/tsloughter/beamup"
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/tsloughter/beamup"
+
+[package.metadata.wix]
+upgrade-guid = "67FB3E2E-2204-4262-B187-C940B9E293E1"
+path-guid = "7600FDEA-F157-41B8-A433-A81FC6A057DF"
+license = false
+eula = false
 
 [dependencies]
 clap = {version = "4.5.8", features = ["derive", "color"]}
@@ -30,6 +37,7 @@ flate2 = "1.0.30"
 color-eyre = "0.6.2"
 http = "1.1.0"
 ureq = "2.10.0"
+windows-sys = "0.59.0"
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
@@ -43,8 +51,12 @@ cargo-dist-version = "0.19.1"
 # CI backends to support
 ci = "github"
 # The installers to generate for each app
-installers = ["shell"]
+installers = ["shell", "powershell", "msi"]
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu"]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
 # Publish jobs to run in CI
 pr-run-mode = "plan"
+# Path that installers should place binaries in
+install-path = "CARGO_HOME"
+# Whether to install an updater program
+install-updater = false
