@@ -204,8 +204,8 @@ pub fn language_release_dir(
     id: &String,
     force: &Option<bool>,
 ) -> Result<PathBuf> {
-    let cache_dir = dirs::data_local_dir();
-    let release_dir = cache_dir
+    let data_dir = dirs::data_local_dir();
+    let release_dir = data_dir
         .unwrap()
         .join("beamup")
         .join(language.to_string())
@@ -246,20 +246,20 @@ pub fn home_config_file() -> Result<String> {
         Some(d) => d,
         None => return Err(eyre!("no home directory available")),
     };
-    let cache_dir = match dirs::data_local_dir() {
+    let data_dir = match dirs::data_local_dir() {
         Some(d) => d,
         None => return Err(eyre!("no home directory available")),
     };
 
     let default_config = config_dir.join("beamup").join(CONFIG_FILE);
-    let default_cache = cache_dir.join("beamup");
+    let default_data = data_dir.join("beamup");
 
     let _ = fs::create_dir_all(config_dir.join("beamup"));
-    let _ = fs::create_dir_all(cache_dir.join("beamup"));
+    let _ = fs::create_dir_all(data_dir.join("beamup"));
 
     if !default_config.exists() {
         let config = Config {
-            install_dir: default_cache.to_str().unwrap().to_string(),
+            install_dir: default_data.to_str().unwrap().to_string(),
             erlang: Some(LanguageConfig {
                 default: None,
                 installs: toml::Table::new(),

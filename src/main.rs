@@ -218,6 +218,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         // }
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: repo={:?}", language);
+            // TODO: should return Result type
             cmd::releases::run(language);
             Ok(())
         }
@@ -242,8 +243,9 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             let github_repo = languages::get_github_repo(language);
 
             let dir = cmd::install::run(language, &github_repo, release, id, repo, force)?;
-            let _ = cmd::update_links::run(Some(language))?;
+            cmd::update_links::run(Some(language))?;
 
+            // TODO: should return Result type
             config::add_install(language, id, dir, config_file, config);
 
             Ok(())
@@ -251,7 +253,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         SubCommands::UpdateLinks => {
             debug!("running update-links");
 
-            let _ = cmd::update_links::run(None)?;
+            cmd::update_links::run(None)?;
 
             info!("Updated links of language binaries to current beamup install");
 
@@ -313,7 +315,9 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
 
-            let _ = cmd::update_links::run(Some(language))?;
+            cmd::update_links::run(Some(language))?;
+
+            // TODO: this should Result type
             config::add_install(language, &id, dir, config_file, config);
 
             Ok(())
