@@ -9,6 +9,9 @@ use tar::Archive;
 use tempdir::TempDir;
 use zip;
 
+#[cfg(windows)]
+use std::process::ExitStatus;
+
 pub fn run(
     language: &languages::Language,
     github_repo: &GithubRepo,
@@ -34,9 +37,6 @@ pub fn run(
     match ext {
         "exe" => {
             let release_dir = release_dir.into_os_string().into_string().unwrap();
-            // let file = file.into_os_string().into_string().unwrap();
-            // let cmd = format!("{file:}");
-
             exe_run(file, release_dir.clone())?;
             Ok(release_dir)
         }
@@ -65,6 +65,7 @@ fn exe_run(_cmd: PathBuf, _release_dir: String) -> Result<(), Report> {
 #[cfg(windows)]
 fn exe_run(file: PathBuf, release_dir: String) -> Result<ExitStatus, Report> {
     use std::os::windows::process::CommandExt;
+    use std::process::Command;
     use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
     use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
 

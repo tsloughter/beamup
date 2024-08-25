@@ -1,13 +1,11 @@
-use color_eyre::{eyre::Report, eyre::Result};
+use color_eyre::eyre::Result;
 use std::env::Args;
 
 use crate::config;
 use std::path::*;
 use std::process::Command;
-#[cfg(windows)]
-use std::process::ExitStatus;
 
-pub fn run(bin: &str, args: Args) -> Result<(), Report> {
+pub fn run(bin: &str, args: Args) -> Result<()> {
     // no -c argument available in this case
     let dir = config::install_to_use(bin)?;
     let cmd = Path::new(&dir).join("bin").join(bin);
@@ -21,14 +19,14 @@ pub fn run(bin: &str, args: Args) -> Result<(), Report> {
 }
 
 #[cfg(unix)]
-fn exec(cmd: &mut Command) -> Result<(), Report> {
+fn exec(cmd: &mut Command) -> Result<()> {
     use std::os::unix::prelude::*;
     Err(cmd.exec().into())
 }
 
 // thanks rustup command.rs
 #[cfg(windows)]
-fn exec(cmd: &mut Command) -> Result<ExitStatus, Report> {
+fn exec(cmd: &mut Command) -> Result<()> {
     use color_eyre::eyre::eyre;
     use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
     use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
@@ -43,5 +41,10 @@ fn exec(cmd: &mut Command) -> Result<ExitStatus, Report> {
         }
     }
 
-    Ok(cmd.status()?)
+    let status = cmd.status()?;
+    if !status.success() {
+        std::process::exit(status.code().unwrap_or(0))
+    }
+
+    Ok(())
 }
