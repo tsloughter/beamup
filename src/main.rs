@@ -242,7 +242,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             let github_repo = languages::get_github_repo(language);
 
             let dir = cmd::install::run(language, &github_repo, release, id, repo, force)?;
-            cmd::update_links::run(Some(language));
+            let _ = cmd::update_links::run(Some(language))?;
 
             config::add_install(language, id, dir, config_file, config);
 
@@ -251,7 +251,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         SubCommands::UpdateLinks => {
             debug!("running update-links");
 
-            cmd::update_links::run(None);
+            let _ = cmd::update_links::run(None)?;
 
             info!("Updated links of language binaries to current beamup install");
 
@@ -313,7 +313,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
 
-            cmd::update_links::run(Some(language));
+            let _ = cmd::update_links::run(Some(language))?;
             config::add_install(language, &id, dir, config_file, config);
 
             Ok(())
