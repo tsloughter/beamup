@@ -15,11 +15,12 @@ pub fn run(
     release: &str,
     id: &String,
     _repo: &Option<String>,
-    _force: &Option<bool>,
+    force: &Option<bool>,
 ) -> Result<String, Report> {
+    let release_dir = config::language_release_dir(language, id, force)?;
+
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
     let file = download_asset(language, out_dir.path(), github_repo, release)?;
-    let release_dir = config::language_release_dir(language.to_owned(), id.to_owned());
     debug!("file {:?} downloaded", file);
     let open_file = File::open(&file).wrap_err_with(|| {
         format!(
