@@ -293,6 +293,10 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 ));
             }
 
+            if std::env::consts::OS == "windows" {
+                return Err(eyre!("build command not supported yet for Windows"));
+            }
+
             let git_ref = match release {
                 None => match branch {
                     None => {
