@@ -2,7 +2,7 @@ use color_eyre::{eyre::Report, eyre::Result};
 use std::env::Args;
 
 use std::path::*;
-use std::process::Command;
+use std::process::{Command, ExitStatus};
 
 use crate::config;
 
@@ -27,7 +27,7 @@ fn exec(cmd: &mut Command) -> Result<(), Report> {
 
 // thanks rustup command.rs
 #[cfg(windows)]
-fn exec(cmd: &mut Command) -> Result<(), Report> {
+fn exec(cmd: &mut Command) -> Result<ExitStatus, Report> {
     use color_eyre::eyre::eyre;
     use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
     use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
@@ -42,6 +42,5 @@ fn exec(cmd: &mut Command) -> Result<(), Report> {
         }
     }
 
-    let _ = cmd.status();
-    Ok(())
+    Ok(cmd.status()?)
 }
