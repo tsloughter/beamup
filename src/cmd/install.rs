@@ -4,11 +4,10 @@ use crate::languages;
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
 use flate2::read::GzDecoder;
 use std::fs::File;
-use std::process::{Command, ExitStatus};
+use std::path::PathBuf;
 use tar::Archive;
 use tempdir::TempDir;
 use zip;
-use std::path::PathBuf;
 
 pub fn run(
     language: &languages::Language,
@@ -64,9 +63,9 @@ fn exe_run(_cmd: PathBuf, _release_dir: String) -> Result<(), Report> {
 // thanks rustup command.rs
 #[cfg(windows)]
 fn exe_run(file: PathBuf, release_dir: String) -> Result<ExitStatus, Report> {
+    use std::os::windows::process::CommandExt;
     use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
     use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
-    use std::os::windows::process::CommandExt;
 
     unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
         // Do nothing. Let the child process handle it.

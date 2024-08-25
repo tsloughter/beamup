@@ -1,10 +1,11 @@
 use color_eyre::{eyre::Report, eyre::Result};
 use std::env::Args;
 
-use std::path::*;
-use std::process::{Command, ExitStatus};
-
 use crate::config;
+use std::path::*;
+use std::process::Command;
+#[cfg(windows)]
+use std::process::ExitStatus;
 
 pub fn run(bin: &str, args: Args) -> Result<(), Report> {
     // no -c argument available in this case
