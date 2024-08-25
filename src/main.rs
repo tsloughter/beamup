@@ -233,11 +233,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id, repo, force
             );
 
-            if *language != languages::Language::Gleam {
-                return Err(eyre!(
-                    "install command not supported yet for language {language:?}"
-                ));
-            }
+            let _ = check_if_supported(language);
 
             // if no user supplied id then use the name of
             // the release to install
@@ -320,6 +316,23 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         }
         _ => Err(eyre!("subcommand not implemented yet")),
     }
+}
+
+fn check_if_supported(language: &languages::Language) -> Result<()> {
+    if *language != languages::Language::Gleam && *language == languages::Language::Erlang {
+        // install command for Erlang only supports Windows on x86 or x86_64 at this time
+        match (std::env::consts::ARCH, std::env::consts::OS) {
+            ("x86", "windows") => return Ok(()),
+            ("x86_64", "windows") => return Ok(()),
+            (os, arch) => {
+                return Err(eyre!(
+                    "install command not supported yet for language {language:?} on {os:?} {arch:?}"
+                ))
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn setup_logging() {
