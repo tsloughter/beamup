@@ -48,10 +48,12 @@ pub fn run(
     git_ref: &GitRef,
     id: &String,
     _repo: &Option<String>,
-    _force: &Option<bool>,
+    force: &Option<bool>,
     config: &config::Config,
 ) -> Result<String> {
     debug!("Building {language} from source from git ref={git_ref} with id={id}");
+
+    let release_dir = config::language_release_dir(language, id, force)?;
 
     //maybe grab configure options from environment
     let key = "BEAMUP_BUILD_OPTIONS";
@@ -73,7 +75,6 @@ pub fn run(
         )
     })?;
 
-    let release_dir = config::language_release_dir(language.to_owned(), id.to_owned());
     debug!("unpacking source tarball {tar_gz:?} to {out_dir:?}");
     let tar = GzDecoder::new(tar_gz);
     let mut archive = Archive::new(tar);
