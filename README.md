@@ -9,10 +9,18 @@ Erlang and [Gleam](https://gleam.run/) are supported, with
 
 ## Install
 
-An install script is provided:
+An install script is provided for both Linux/Mac:
 
 ```
-$ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/tsloughter/beamup/releases/download/v0.1.2/beamup-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/tsloughter/beamup/releases/download/v0.3.0/beamup-installer.sh | sh
+```
+
+And Windows Powershell:
+
+```
+powershell -c "irm
+https://github.com/tsloughter/beamup/releases/download/v0.3.0/beamup-installer.ps1
+| iex"
 ```
 
 Binaries can also be downloaded from the [releases on
