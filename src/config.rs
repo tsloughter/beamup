@@ -23,6 +23,20 @@ pub struct LanguageConfig {
     installs: toml::Table,
 }
 
+pub fn print_ids(config: &Config) {
+    println!("Erlang:");
+    config.erlang.as_ref().map(print_language_ids);
+    println!("");
+    println!("Gleam:");
+    config.gleam.as_ref().map(print_language_ids);
+}
+
+fn print_language_ids(lc: &LanguageConfig) {
+    for id in lc.installs.keys() {
+        println!("{id}")
+    }
+}
+
 fn get_language_config(language: &languages::Language, config: &Config) -> LanguageConfig {
     match language {
         languages::Language::Gleam => config.gleam.clone().unwrap_or_default(),
