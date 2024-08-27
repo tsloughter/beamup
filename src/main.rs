@@ -212,10 +212,11 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             println!("gleam");
             Ok(())
         }
-        // SubCommands::List => {
-        //     debug!("running list");
-        //     Ok(())
-        // }
+        SubCommands::List => {
+            debug!("running list");
+            cmd::list::run(&config);
+            Ok(())
+        }
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: repo={:?}", language);
             // TODO: should return Result type
