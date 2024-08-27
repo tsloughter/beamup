@@ -2,10 +2,9 @@
 
 [![Release](https://github.com/tsloughter/beamup/actions/workflows/release.yml/badge.svg)](https://github.com/tsloughter/beamup/actions/workflows/release.yml)
 
-A tool for installing languages that run on the [Erlang
-VM](https://www.erlang.org/) (BEAM) and related components. As of now only
-Erlang and [Gleam](https://gleam.run/) are supported, with
-[Elixir](http://elixir-lang.org/) to come next.
+A tool for installing languages (support for Gleam, Erlang and Elixir) that run
+on the [Erlang VM](https://www.erlang.org/) (BEAM) and related components --
+component support to come in the future.
 
 ## Install
 
@@ -39,7 +38,7 @@ Local configuration to set a language/component to use in a specific directory
 is in `./.beamup.toml`.
 
 Hard links to the `beamup` executable for each language command, i.e. `gleam`,
-`erlc`, `erl`, etc, is created in the following directory:
+`erlc`, `erl`, `iex`, etc, is created in the following directory:
 
 - Linux: `$XDG_BIN_HOME` or `$XDG_DATA_HOME/../bin` or `$HOME/.local/bin`
 - Mac: `~/.beamup/bin`
@@ -73,8 +72,8 @@ BEAMUP_BUILD_OPTIONS="--enable-lock-counter" beamup build erlang -i latest-lock-
 ### Install
 
 The `build` command will compile a release and `install` will fetch a binary
-release. For Erlang at this time only `build` is supported and for Gleam only
-`install` is supported`.
+release. For Erlang at this time only `build` is supported and for Gleam and
+Elixir only `install` is supported`.
 
 The string `latest` can be used instead of a release name to get the release
 marked latest in Github:

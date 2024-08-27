@@ -14,6 +14,7 @@ pub struct Config {
     install_dir: String,
     erlang: Option<LanguageConfig>,
     gleam: Option<LanguageConfig>,
+    elixir: Option<LanguageConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
@@ -27,6 +28,7 @@ fn get_language_config(language: &languages::Language, config: &Config) -> Langu
     match language {
         languages::Language::Gleam => config.gleam.clone().unwrap_or_default(),
         languages::Language::Erlang => config.erlang.clone().unwrap_or_default(),
+        languages::Language::Elixir => config.elixir.clone().unwrap_or_default(),
     }
 }
 
@@ -91,6 +93,7 @@ pub fn install_to_use(bin: &str) -> Result<String> {
             match language {
                 languages::Language::Gleam => get_default_id(&config.gleam)?,
                 languages::Language::Erlang => get_default_id(&config.erlang)?,
+                languages::Language::Elixir => get_default_id(&config.elixir)?,
             }
         }
         Some(id) => id.clone(),
@@ -154,6 +157,10 @@ pub fn set_default(
             erlang: Some(new_lc),
             ..config
         },
+        languages::Language::Elixir => Config {
+            elixir: Some(new_lc),
+            ..config
+        },
     };
 
     write_config(config_file, new_config)
@@ -192,6 +199,10 @@ pub fn add_install(
         },
         languages::Language::Erlang => Config {
             erlang: Some(updated_language_config),
+            ..config
+        },
+        languages::Language::Elixir => Config {
+            elixir: Some(updated_language_config),
             ..config
         },
     };
@@ -266,6 +277,11 @@ pub fn home_config_file() -> Result<String> {
                 default_build_options: None,
             }),
             gleam: Some(LanguageConfig {
+                default: None,
+                installs: toml::Table::new(),
+                default_build_options: None,
+            }),
+            elixir: Some(LanguageConfig {
                 default: None,
                 installs: toml::Table::new(),
                 default_build_options: None,

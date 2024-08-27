@@ -42,7 +42,11 @@ pub fn run(
         }
         "zip" => {
             let mut archive = zip::ZipArchive::new(open_file)?;
-            archive.extract(&release_dir.join("bin"))?;
+            let release_dir = match language {
+                languages::Language::Gleam => release_dir.join("bin"),
+                _ => release_dir,
+            };
+            archive.extract(&release_dir)?;
             Ok(release_dir.into_os_string().into_string().unwrap())
         }
         _ => {

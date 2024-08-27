@@ -1,3 +1,4 @@
+use crate::config;
 use crate::languages::Language;
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
 use console::{style, Emoji};
@@ -50,9 +51,29 @@ fn asset_name(language: &Language, tag: &str) -> Result<String> {
                 }
             }
         }
+        Language::Elixir => {
+            // find dir of active Erlang
+            let erlang_dir = config::install_to_use("erl")?;
+            let otp_major_vsn = get_otp_major_vsn(erlang_dir)?;
+            format!("elixir-otp-{otp_major_vsn:}.zip")
+        }
     };
 
     Ok(asset_name)
+}
+
+fn get_otp_major_vsn(dir: String) -> Result<String> {
+    let releases_dir = Path::new(&dir).join("lib").join("erlang").join("releases");
+    let mut otps = std::fs::read_dir(&releases_dir)?;
+    let binding = otps
+        .next()
+        .ok_or(eyre!("No installed OTP release found in {releases_dir:?}"))?;
+    let binding = binding?.file_name();
+    let otp_major_vsn = binding
+        .to_str()
+        .ok_or(eyre!("Unable to convert OTP vsn {binding:?} to string"))?;
+
+    Ok(otp_major_vsn.to_string())
 }
 
 pub fn print_releases(GithubRepo { org, repo }: &GithubRepo) {
