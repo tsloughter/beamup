@@ -3,12 +3,15 @@ use crate::languages;
 use clap::ValueEnum;
 use color_eyre::{eyre::eyre, eyre::Result};
 
+pub mod elixir;
 pub mod erlang;
 pub mod gleam;
 
 #[cfg(unix)]
 pub const BIN_MAP: &[(&str, languages::Language)] = &[
+    // Gleam
     ("gleam", languages::Language::Gleam),
+    // Erlang
     ("ct_run", languages::Language::Erlang),
     ("dialyzer", languages::Language::Erlang),
     ("epmd", languages::Language::Erlang),
@@ -20,11 +23,19 @@ pub const BIN_MAP: &[(&str, languages::Language)] = &[
     ("run_test", languages::Language::Erlang),
     ("to_erl", languages::Language::Erlang),
     ("typer", languages::Language::Erlang),
+    // Elixir
+    ("elixir", languages::Language::Elixir),
+    ("elixirc", languages::Language::Elixir),
+    ("iex", languages::Language::Elixir),
+    ("mix", languages::Language::Elixir),
+    ("mix", languages::Language::Elixir),
 ];
 
 #[cfg(windows)]
 pub const BIN_MAP: &[(&str, languages::Language)] = &[
+    // Gleam
     ("gleam.exe", languages::Language::Gleam),
+    // Erlang
     ("ct_run.exe", languages::Language::Erlang),
     ("dialyzer.exe", languages::Language::Erlang),
     ("epmd.exe", languages::Language::Erlang),
@@ -36,12 +47,19 @@ pub const BIN_MAP: &[(&str, languages::Language)] = &[
     ("run_test.exe", languages::Language::Erlang),
     ("to_erl.exe", languages::Language::Erlang),
     ("typer.exe", languages::Language::Erlang),
+    // Elixir
+    ("elixir.bat", languages::Language::Elixir),
+    ("elixirc.bat", languages::Language::Elixir),
+    ("iex.bat", languages::Language::Elixir),
+    ("mix.bat", languages::Language::Elixir),
+    ("mix.ps1", languages::Language::Elixir),
 ];
 
 #[derive(ValueEnum, Debug, Clone, PartialEq)]
 pub enum Language {
     Erlang,
     Gleam,
+    Elixir,
 }
 
 impl std::fmt::Display for Language {
@@ -49,6 +67,7 @@ impl std::fmt::Display for Language {
         match self {
             Language::Erlang => write!(f, "erlang"),
             Language::Gleam => write!(f, "gleam"),
+            Language::Elixir => write!(f, "elixir"),
         }
     }
 }
@@ -57,6 +76,7 @@ pub fn get_github_repo(language: &Language) -> GithubRepo {
     match language {
         Language::Gleam => gleam::get_github_repo(),
         Language::Erlang => erlang::get_github_repo(),
+        Language::Elixir => elixir::get_github_repo(),
     }
 }
 
