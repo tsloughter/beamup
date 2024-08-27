@@ -1,5 +1,8 @@
 {
   "styles": {
     "theme": "axolight"
+  },
+  "build": {
+    "path_prefix": "beamup"
   }
 }
