@@ -108,9 +108,18 @@ fn lookup_install_by_id(id: String, lc: Option<LanguageConfig>) -> Result<String
         None => Err(eyre!("No config found")),
         Some(language_config) => match language_config.installs.get(&id) {
             None => Err(eyre!("No install found for id {id}")),
+            // backwards compatible clause for when id's only pointed
+            // to a directory and not more metadata
             Some(toml::Value::String(dir)) => {
                 debug!("Found install in directory {}", dir);
                 Ok(dir.to_owned())
+            }
+            Some(t @ toml::Value::Table(_)) => {
+                if let Some(toml::Value::String(dir)) = t.get("dir") {
+                    Ok(dir.to_string())
+                } else {
+                    Err(eyre!("No directory found for install id {id}"))
+                }
             }
             _ => Err(eyre!("Bad directory found in installs for id {id}")),
         },
@@ -172,7 +181,9 @@ pub fn update_language_config(id: &String, dir: String, lc: LanguageConfig) -> L
         installs: mut table,
         default_build_options,
     } = lc;
-    table.insert(id.clone(), toml::Value::String(dir));
+    let mut id_table = toml::Table::new();
+    id_table.insert("dir".to_string(), toml::Value::String(dir));
+    table.insert(id.clone(), toml::Value::Table(id_table));
     LanguageConfig {
         default: Some(id.to_owned()),
         installs: table.clone(),
