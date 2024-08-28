@@ -193,6 +193,7 @@ pub fn set_default(
 pub fn update_language_config(
     language: &languages::Language,
     id: &String,
+    release: &String,
     dir: String,
     lc: LanguageConfig,
 ) -> Result<LanguageConfig> {
@@ -203,6 +204,10 @@ pub fn update_language_config(
     } = lc;
     let mut id_table = toml::Table::new();
     id_table.insert("dir".to_string(), toml::Value::String(dir));
+    id_table.insert(
+        "release".to_string(),
+        toml::Value::String(release.to_owned()),
+    );
 
     match language {
         languages::Language::Elixir => {
@@ -223,6 +228,7 @@ pub fn update_language_config(
 pub fn add_install(
     language: &languages::Language,
     id: &String,
+    release: &String,
     dir: String,
     config_file: String,
     config: Config,
@@ -231,7 +237,7 @@ pub fn add_install(
     let language_config = get_language_config(language, &config);
 
     let updated_language_config =
-        update_language_config(language, id, dir, language_config.clone())?;
+        update_language_config(language, id, release, dir, language_config.clone())?;
 
     let new_config = match language {
         languages::Language::Gleam => Config {
