@@ -246,7 +246,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             let dir = cmd::install::run(language, &github_repo, release, id, repo, force)?;
             cmd::update_links::run(Some(language))?;
 
-            config::add_install(language, id, dir, config_file, config)
+            config::add_install(language, id, release, dir, config_file, config)
         }
         SubCommands::UpdateLinks => {
             debug!("running update-links");
@@ -315,7 +315,14 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             cmd::update_links::run(Some(language))?;
 
-            config::add_install(language, &id, dir, config_file, config)
+            config::add_install(
+                language,
+                &id,
+                &git_ref.to_string(),
+                dir,
+                config_file,
+                config,
+            )
         }
         _ => Err(eyre!("subcommand not implemented yet")),
     }
