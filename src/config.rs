@@ -85,6 +85,21 @@ fn get_local_id(language_str: String, local_config: &Option<toml::Table>) -> Opt
     }
 }
 
+pub fn get_otp_major_vsn() -> Result<String> {
+    let dir = install_to_use("erl")?;
+    let releases_dir = Path::new(&dir).join("lib").join("erlang").join("releases");
+    let mut otps = std::fs::read_dir(&releases_dir)?;
+    let binding = otps
+        .next()
+        .ok_or(eyre!("No installed OTP release found in {releases_dir:?}"))?;
+    let binding = binding?.file_name();
+    let otp_major_vsn = binding
+        .to_str()
+        .ok_or(eyre!("Unable to convert OTP vsn {binding:?} to string"))?;
+
+    Ok(otp_major_vsn.to_string())
+}
+
 pub fn install_to_use(bin: &str) -> Result<String> {
     let language = languages::bin_to_language(bin)?;
     let (_, config) = home_config()?;
@@ -189,7 +204,12 @@ pub fn set_default(
     write_config(config_file, new_config)
 }
 
-pub fn update_language_config(id: &String, dir: String, lc: LanguageConfig) -> LanguageConfig {
+pub fn update_language_config(
+    language: &languages::Language,
+    id: &String,
+    dir: String,
+    lc: LanguageConfig,
+) -> Result<LanguageConfig> {
     let LanguageConfig {
         default: _,
         installs: mut table,
@@ -197,12 +217,21 @@ pub fn update_language_config(id: &String, dir: String, lc: LanguageConfig) -> L
     } = lc;
     let mut id_table = toml::Table::new();
     id_table.insert("dir".to_string(), toml::Value::String(dir));
+
+    match language {
+        languages::Language::Elixir => {
+            let otp_vsn = get_otp_major_vsn()?;
+            id_table.insert("otp_vsn".to_string(), toml::Value::String(otp_vsn));
+        }
+        _ => (),
+    };
+
     table.insert(id.clone(), toml::Value::Table(id_table));
-    LanguageConfig {
+    Ok(LanguageConfig {
         default: Some(id.to_owned()),
         installs: table.clone(),
         default_build_options: default_build_options.clone(),
-    }
+    })
 }
 
 pub fn add_install(
@@ -211,11 +240,12 @@ pub fn add_install(
     dir: String,
     config_file: String,
     config: Config,
-) {
+) -> Result<()> {
     debug!("adding install {id} pointing to {dir}");
     let language_config = get_language_config(language, &config);
 
-    let updated_language_config = update_language_config(id, dir, language_config.clone());
+    let updated_language_config =
+        update_language_config(language, id, dir, language_config.clone())?;
 
     let new_config = match language {
         languages::Language::Gleam => Config {
@@ -233,6 +263,8 @@ pub fn add_install(
     };
 
     let _ = write_config(config_file, new_config);
+
+    Ok(())
 }
 
 pub fn language_release_dir(
