@@ -25,6 +25,9 @@ pub struct LanguageConfig {
 }
 
 pub fn print_ids(config: &Config) {
+    println!("Elixir:");
+    config.elixir.as_ref().map(print_language_ids);
+    println!("");
     println!("Erlang:");
     config.erlang.as_ref().map(print_language_ids);
     println!("");
