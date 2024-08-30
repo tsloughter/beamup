@@ -2,6 +2,10 @@
 
 [![Release](https://github.com/tsloughter/beamup/actions/workflows/release.yml/badge.svg)](https://github.com/tsloughter/beamup/actions/workflows/release.yml)
 
+<p align="center">
+    <img alt="beamup logo" src="https://github.com/user-attachments/assets/b1d7c5da-71f1-4c15-96fe-a01e3884d523">
+</p>
+
 A tool for installing languages (support for Gleam, Erlang and Elixir) that run
 on the [Erlang VM](https://www.erlang.org/) (BEAM) and related components --
 component support to come in the future.
