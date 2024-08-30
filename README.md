@@ -90,6 +90,10 @@ $ beamup build erlang latest
 $ beamup install gleam latest
 ```
 
+```
+$ beamup install elixir latest
+```
+
 See the `releases <language>` sub-command to see available releases to
 build/install.
 
