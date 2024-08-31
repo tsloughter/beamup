@@ -20,8 +20,6 @@ pub fn run(
     _repo: &Option<String>,
     force: &Option<bool>,
 ) -> Result<String, Report> {
-    let release_dir = config::language_release_dir(language, id, force)?;
-
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
     let file = download_asset(language, out_dir.path(), github_repo, release)?;
     debug!("file {:?} downloaded", file);
@@ -31,6 +29,8 @@ pub fn run(
             release, &file
         )
     })?;
+
+    let release_dir = config::language_release_dir(language, id, force)?;
 
     // TODO: better ways to check the type than the extension
     let ext = file.extension().map_or("", |e| e.to_str().unwrap_or(""));

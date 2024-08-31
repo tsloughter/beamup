@@ -51,9 +51,9 @@ fn get_language_config(language: &languages::Language, config: &Config) -> Langu
 
 fn get_default_id(lc: &Option<LanguageConfig>) -> Result<String> {
     match lc {
-        None => Err(eyre!("No default found for {:?}", lc)),
+        None => Err(eyre!("No default found for language {:?}", lc)),
         Some(lc) => match &lc.default {
-            None => Err(eyre!("No default found for language")),
+            None => Err(eyre!("No default found for language {:?}", lc)),
             Some(default) => {
                 debug!("Found default {:?}", default);
                 Ok(default.to_string())
@@ -89,7 +89,10 @@ fn get_local_id(language_str: String, local_config: &Option<toml::Table>) -> Opt
 }
 
 pub fn get_otp_major_vsn() -> Result<String> {
-    let dir = install_to_use("erl")?;
+    let dir = match install_to_use("erl") {
+        Ok(dir) => Ok(dir),
+        Err(_) => Err(eyre!("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")),
+    }?;
     let releases_dir = Path::new(&dir).join("lib").join("erlang").join("releases");
     let mut otps = std::fs::read_dir(&releases_dir)?;
     let binding = otps
