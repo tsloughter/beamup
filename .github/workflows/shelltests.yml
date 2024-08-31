@@ -7,11 +7,14 @@ on:
     branches: [ main ]
 
 jobs:
-  check-schema:
+  run:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Install just
+      uses: extractions/setup-just@v1
 
     - name: Run ShellTests
       run: |
