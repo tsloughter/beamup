@@ -154,6 +154,8 @@ pub fn download_asset(
     GithubRepo { org, repo }: &GithubRepo,
     tag: &str,
 ) -> Result<PathBuf, Report> {
+    let asset_name = asset_name(language, tag)?;
+
     let rt = setup_tokio();
 
     let release_result = if tag == "latest" {
@@ -185,8 +187,6 @@ pub fn download_asset(
             ));
         }
     };
-
-    let asset_name = asset_name(language, tag)?;
 
     match assets.iter().find(|&asset| *asset.name == asset_name) {
         Some(asset) => {
