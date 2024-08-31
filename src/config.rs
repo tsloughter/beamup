@@ -295,7 +295,7 @@ pub fn language_release_dir(
                     info!("Force enabled. Deleting existing release directory {release_dir:?}");
                     fs::remove_dir_all(&release_dir)?
                 },
-                _ => return Err(eyre!("Release directory for id {id:} already exists. Use `-f` to delete {release_dir:?} and recreate instead of giving this error.")),
+                _ => return Err(eyre!("Release directory for id {id:} already exists. Use `-f true` to delete {release_dir:?} and recreate instead of giving this error.")),
             }
         Ok(false) => {},
         Err(e) => return Err(eyre!(
