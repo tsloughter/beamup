@@ -1,2 +1,16 @@
 target/debug/beamup help
 >>>= 0
+
+
+target/debug/beamup install gleam v1.4.1
+>>>=0
+
+target/debug/beamup list
+>>>
+Elixir:
+
+Erlang:
+
+Gleam:
+v1.4.1
+>>>=0
