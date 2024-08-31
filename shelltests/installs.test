@@ -1,10 +1,13 @@
+# test help works
 target/debug/beamup help
+>>> /Manage BEAM language installs/
 >>>= 0
 
-
+# test an install of gleam
 target/debug/beamup install gleam v1.4.1
 >>>=0
 
+# list available installs
 target/debug/beamup list
 >>>
 Elixir:
@@ -15,10 +18,20 @@ Gleam:
 v1.4.1
 >>>=0
 
+# test link was created in the right place
 ls ~/.local/bin/gleam
 >>>=0
 
+# test the version is right
 ~/.local/bin/gleam --version
 >>>
 gleam 1.4.1
+>>>=0
+
+# try installing the same version again and error
+target/debug/beamup install gleam v1.4.1
+>>>=1
+
+# force an install of the same version
+target/debug/beamup install -f true gleam v1.4.1
 >>>=0
