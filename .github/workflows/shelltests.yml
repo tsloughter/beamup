@@ -8,11 +8,7 @@ on:
 
 jobs:
   run:
-    strategy:
-      matrix:
-        # TODO: 'windows-latest'
-        os: ['ubuntu-latest', 'macos-latest']
-    runs-on: ${{ matrix.os }}
+    runs-on: 'ubuntu-latest'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
