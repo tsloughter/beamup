@@ -16,6 +16,18 @@ jobs:
     - name: Install just
       uses: extractions/setup-just@v1
 
+    - uses: haskell-actions/setup@v2
+      with:
+        ghc-version: '9.8'
+        enable-stack: true
+        stack-version: 'latest'
+
+    - name: Install shelltestrunner
+      run: stack install shelltestrunner-1.10
+
+    - name: Build beamup
+      run: cargo build
+
     - name: Run ShellTests
       run: |
-        just docker-run-shelltests
+        just shelltests
