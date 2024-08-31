@@ -14,11 +14,11 @@ pub fn run(maybe_language: Option<&languages::Language>) -> Result<()> {
             let beamup_exe = std::env::current_exe().unwrap();
             debug!("linking {:?} to {:?}", link, beamup_exe);
             let _ = std::fs::remove_file(&link);
-            match std::fs::hard_link(beamup_exe, &link) {
+            match std::fs::hard_link(&beamup_exe, &link) {
                 Ok(()) => {}
                 Err(e) => {
                     has_err = true;
-                    error!("Failed to link {:?}: {}", link, e);
+                    error!("Failed to link {:?} to {:?}: {}", link, beamup_exe, e);
                 }
             }
         }
