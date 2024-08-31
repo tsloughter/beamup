@@ -118,7 +118,7 @@ fn build(install_dir: &Path, dir: &Path, user_build_options0: &str) -> Result<()
     build_options.append(&mut user_build_options);
 
     // declare the build pipeline steps
-    let build_steps: [BuildStep; 7] = [
+    let build_steps: [BuildStep; 6] = [
         BuildStep::Exec("./configure", build_options),
         BuildStep::Check(Box::new(|context| {
             if has_openssl(context.src_dir) {
@@ -181,14 +181,15 @@ fn build(install_dir: &Path, dir: &Path, user_build_options0: &str) -> Result<()
                 "install".to_string(),
             ],
         ),
-        BuildStep::Exec(
-            "make",
-            vec![
-                "-j".to_string(),
-                num_cpus.to_string(),
-                "install-docs".to_string(),
-            ],
-        ),
+        // needs to skip if no ex_doc found and give an info message
+        // BuildStep::Exec(
+        //     "make",
+        //     vec![
+        //         "-j".to_string(),
+        //         num_cpus.to_string(),
+        //         "install-docs".to_string(),
+        //     ],
+        // ),
     ];
     // execute them sequentially
     let mut build_status = BuildResult::Success;
