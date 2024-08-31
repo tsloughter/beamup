@@ -14,3 +14,11 @@ Erlang:
 Gleam:
 v1.4.1
 >>>=0
+
+ls ~/.local/bin/gleam
+>>>=0
+
+~/.local/bin/gleam --version
+>>>
+gleam 1.4.1
+>>>=0
