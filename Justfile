@@ -1,11 +1,11 @@
+build:
+    cargo build
+
 docker-image:
     docker build -t beamup-shelltest .
 
 docker-run-shelltests: docker-image
     docker run -v $(pwd):/app beamup-shelltest in-docker-shelltests
-
-build:
-    cargo build
 
 # have to copy to a new dir outside of the mounted volume or
 # we get an error when the link is created
