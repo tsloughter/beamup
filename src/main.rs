@@ -74,6 +74,9 @@ enum SubCommands {
 
     /// Update repos to the config
     Repo(RepoSubCommands),
+
+    /// Add or remove a link to an existing install
+    Link(LinkSubCommands),
 }
 
 #[derive(Args, Debug)]
@@ -174,8 +177,11 @@ enum RepoCmds {
 
 #[derive(Args, Debug)]
 struct RepoAddArgs {
-    /// Name of the repo to add
-    name: String,
+    /// Language to add repo for
+    language: languages::Language,
+
+    /// id of the repo to add
+    id: String,
 
     /// Url of the git repo for the repo
     repo: String,
@@ -183,8 +189,47 @@ struct RepoAddArgs {
 
 #[derive(Args, Debug)]
 struct RepoRmArgs {
-    /// Name of the repo to remove
-    name: String,
+    /// Language to remove repo for
+    language: languages::Language,
+
+    /// id of the repo to remove
+    id: String,
+}
+
+#[derive(Args, Debug)]
+struct LinkSubCommands {
+    #[command(subcommand)]
+    cmd: LinkCmds,
+}
+
+#[derive(Subcommand, Debug)]
+enum LinkCmds {
+    /// Add link to existing installation of language
+    Add(LinkAddArgs),
+
+    /// Remove link to installation language
+    Rm(LinkRmArgs),
+}
+
+#[derive(Args, Debug)]
+struct LinkAddArgs {
+    /// Language to add existing installation for
+    language: languages::Language,
+
+    /// id of the installation to link to
+    id: String,
+
+    /// Path of the existing installation
+    path: String,
+}
+
+#[derive(Args, Debug)]
+struct LinkRmArgs {
+    /// Language to remove existing installation for
+    language: languages::Language,
+
+    /// id of the installation to remove
+    id: String,
 }
 
 fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
