@@ -15,4 +15,4 @@ in-docker-shelltests: build
     cd /tmp/app && just shelltests
 
 shelltests:
-    shelltest -c --diff --all shelltests/*.test
+    shelltest -c --diff --debug --all shelltests/*.test
