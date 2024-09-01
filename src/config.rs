@@ -27,10 +27,10 @@ pub struct LanguageConfig {
 pub fn print_ids(config: &Config) {
     println!("Elixir:");
     config.elixir.as_ref().map(print_language_ids);
-    println!("");
+    println!();
     println!("Erlang:");
     config.erlang.as_ref().map(print_language_ids);
-    println!("");
+    println!();
     println!("Gleam:");
     config.gleam.as_ref().map(print_language_ids);
 }
@@ -229,13 +229,10 @@ pub fn update_language_config(
         toml::Value::String(release.to_owned()),
     );
 
-    match language {
-        languages::Language::Elixir => {
-            let otp_vsn = get_otp_major_vsn()?;
-            id_table.insert("otp_vsn".to_string(), toml::Value::String(otp_vsn));
-        }
-        _ => (),
-    };
+    if language == &languages::Language::Elixir {
+        let otp_vsn = get_otp_major_vsn()?;
+        id_table.insert("otp_vsn".to_string(), toml::Value::String(otp_vsn));
+    }
 
     table.insert(id.clone(), toml::Value::Table(id_table));
     Ok(LanguageConfig {
