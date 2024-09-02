@@ -1,0 +1,9 @@
+# test languages works
+target/debug/beamup languages
+>>>
+Languages:
+
+Elixir
+Erlang
+Gleam
+>>>= 0
