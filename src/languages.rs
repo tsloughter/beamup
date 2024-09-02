@@ -2,7 +2,7 @@ use crate::github::GithubRepo;
 use crate::languages;
 use clap::ValueEnum;
 use color_eyre::{eyre::eyre, eyre::Result};
-
+use strum::IntoEnumIterator;
 pub mod elixir;
 pub mod erlang;
 pub mod gleam;
@@ -55,11 +55,17 @@ pub const BIN_MAP: &[(&str, languages::Language)] = &[
     ("mix.ps1", languages::Language::Elixir),
 ];
 
-#[derive(ValueEnum, Debug, Clone, PartialEq)]
+#[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
 pub enum Language {
+    Elixir,
     Erlang,
     Gleam,
-    Elixir,
+}
+
+pub fn print() {
+    for l in Language::iter() {
+        println!("{:?}", l);
+    }
 }
 
 impl std::fmt::Display for Language {

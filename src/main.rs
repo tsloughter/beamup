@@ -2,6 +2,9 @@ extern crate clap;
 
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate strum;
+
 use clap::{Args, Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
 use console::style;
@@ -11,7 +14,9 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process;
+
 mod config;
+
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
 
 mod git;
@@ -208,8 +213,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         SubCommands::Languages => {
             debug!("running list");
             println!("Languages:\n");
-            println!("erlang");
-            println!("gleam");
+            languages::print();
             Ok(())
         }
         SubCommands::List => {
