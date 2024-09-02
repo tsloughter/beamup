@@ -94,16 +94,21 @@ pub fn get_otp_major_vsn() -> Result<String> {
         Err(_) => Err(eyre!("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")),
     }?;
     let releases_dir = Path::new(&dir).join("lib").join("erlang").join("releases");
-    let mut otps = std::fs::read_dir(&releases_dir)?;
-    let binding = otps
-        .next()
-        .ok_or(eyre!("No installed OTP release found in {releases_dir:?}"))?;
-    let binding = binding?.file_name();
-    let otp_major_vsn = binding
-        .to_str()
-        .ok_or(eyre!("Unable to convert OTP vsn {binding:?} to string"))?;
 
-    Ok(otp_major_vsn.to_string())
+    for entry in std::fs::read_dir(&releases_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            let binding = entry.file_name();
+            let otp_major_vsn = binding
+                .to_str()
+                .ok_or(eyre!("Unable to convert OTP vsn {binding:?} to string"))?;
+
+            return Ok(otp_major_vsn.to_string());
+        }
+    }
+
+    Err(eyre!("No installed OTP release found in {releases_dir:?}"))
 }
 
 pub fn install_to_use(bin: &str) -> Result<String> {

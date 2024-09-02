@@ -188,6 +188,7 @@ pub fn download_asset(
         }
     };
 
+    debug!("looking for asset {asset_name}");
     match assets.iter().find(|&asset| *asset.name == asset_name) {
         Some(asset) => {
             let file = out_dir.join(asset_name);
