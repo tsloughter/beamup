@@ -31,6 +31,7 @@ console = "0.15.8"
 num_cpus = "1.8.0"
 shell-words = "1.0.0"
 octocrab = "0.38.0"
+strum = { version = "0.26", features = ["derive"] }
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
 bytes = { version = "1.6.1", features = [] }
 flate2 = "1.0.30"
