@@ -21,7 +21,7 @@ pub struct GithubRepo {
     pub repo: String,
 }
 
-fn asset_name(language: &Language, tag: &str) -> Result<String> {
+pub fn language_asset_name(language: &Language, tag: &str) -> Result<String> {
     let asset_name = match language {
         Language::Gleam => {
             let suffix = match (std::env::consts::ARCH, std::env::consts::OS) {
@@ -149,13 +149,11 @@ pub fn download_release_tarball(
 }
 
 pub fn download_asset(
-    language: &Language,
+    asset_prefix: &String,
     out_dir: &Path,
     GithubRepo { org, repo }: &GithubRepo,
     tag: &str,
 ) -> Result<PathBuf, Report> {
-    let asset_name = asset_name(language, tag)?;
-
     let rt = setup_tokio();
 
     let release_result = if tag == "latest" {
@@ -188,10 +186,13 @@ pub fn download_asset(
         }
     };
 
-    debug!("looking for asset {asset_name}");
-    match assets.iter().find(|&asset| *asset.name == asset_name) {
+    debug!("looking for asset {asset_prefix}");
+    match assets
+        .iter()
+        .find(|&asset| asset.name.starts_with(asset_prefix))
+    {
         Some(asset) => {
-            let file = out_dir.join(asset_name);
+            let file = out_dir.join(&asset.name);
             let dest = std::fs::File::create(&file)
                 .wrap_err_with(|| format!("Failed to create asset download file {:?}", file))?;
 

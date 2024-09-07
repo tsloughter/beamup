@@ -7,3 +7,12 @@ Elixir
 Erlang
 Gleam
 >>>= 0
+
+# test components works
+target/debug/beamup components
+>>>
+Components:
+
+Elp
+Rebar3
+>>>= 0

@@ -73,7 +73,7 @@ Or:
 BEAMUP_BUILD_OPTIONS="--enable-lock-counter" beamup build erlang -i latest-lock-counter latest
 ```
 
-### Install
+### Install Languages
 
 The `build` command will compile a release and `install` will fetch a binary
 release. For Erlang at this time only `build` is supported and for Gleam and
@@ -116,6 +116,20 @@ with an entry like `erlang = "OTP-25.3.2.7"` and running an Erlang command like
 
 - `releases <language>`: List the available releases that can be installed
 - `update-links`: Update the hard links that exists for each language executable
+
+### Install Components
+
+The `component install` command can install binary releases of tools, currently
+[The Erlang Language
+Platform](https://whatsapp.github.io/erlang-language-platform/) and
+[rebar3](https://rebar3.org/).
+
+The same as with a language you can specify a version of the component to use in
+the `.beamup.toml` file in a directory:
+
+```
+rebar3 = "3.23.0"
+```
 
 ## Differences with Erlup
 

@@ -1,16 +1,29 @@
+use crate::components;
+use crate::config;
 use color_eyre::eyre::Result;
 use std::env::Args;
-
-use crate::config;
 use std::path::*;
 use std::process::Command;
+
+pub fn run_component(bin: &str, kind: &components::Kind, args: Args) -> Result<()> {
+    // no -c argument available in this case
+    let dir = config::component_install_to_use(kind)?;
+    let cmd = Path::new(&dir).join("bin").join(bin);
+
+    debug!("running component {:?}", cmd);
+
+    let mut binding = Command::new(cmd);
+    let cmd = binding.args(args);
+
+    exec(cmd)
+}
 
 pub fn run(bin: &str, args: Args) -> Result<()> {
     // no -c argument available in this case
     let dir = config::install_to_use(bin)?;
     let cmd = Path::new(&dir).join("bin").join(bin);
 
-    debug!("running {:?}", cmd);
+    debug!("running language {:?}", cmd);
 
     let mut binding = Command::new(cmd);
     let cmd = binding.args(args);
