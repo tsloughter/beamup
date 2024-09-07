@@ -1,5 +1,5 @@
 use crate::config;
-use crate::github::{download_asset, GithubRepo};
+use crate::github;
 use crate::languages;
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
 use flate2::read::GzDecoder;
@@ -14,14 +14,15 @@ use std::process::ExitStatus;
 
 pub fn run(
     language: &languages::Language,
-    github_repo: &GithubRepo,
+    github_repo: &github::GithubRepo,
     release: &str,
     id: &String,
     _repo: &Option<String>,
     force: bool,
 ) -> Result<String, Report> {
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let file = download_asset(language, out_dir.path(), github_repo, release)?;
+    let asset_name = github::language_asset_name(language, release)?;
+    let file = github::download_asset(&asset_name, out_dir.path(), github_repo, release)?;
     debug!("file {:?} downloaded", file);
     let open_file = File::open(&file).wrap_err_with(|| {
         format!(

@@ -19,12 +19,13 @@ mod config;
 
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
 
+mod cmd;
+mod components;
 mod git;
 mod github;
 mod languages;
+mod links;
 mod run;
-
-mod cmd;
 
 #[derive(Parser, Debug)]
 #[command(version, about = "Manage BEAM language installs.", long_about = None)]
@@ -43,6 +44,9 @@ enum SubCommands {
 
     /// List supported languages
     Languages,
+
+    /// List supported components
+    Components,
 
     /// Update binary symlinks to erlup executable
     UpdateLinks,
@@ -76,6 +80,9 @@ enum SubCommands {
 
     /// Install binary release of language
     Install(InstallArgs),
+
+    /// Manage components
+    Component(ComponentSubCommands),
 
     /// Update repos to the config
     Repo(RepoSubCommands),
@@ -145,6 +152,39 @@ struct BuildArgs {
 struct InstallArgs {
     /// Language to install release of
     language: languages::Language,
+
+    /// Release version to install
+    release: String,
+
+    /// Id to give the install
+    #[arg(short, long)]
+    id: Option<String>,
+
+    /// Where to grab the releases
+    #[arg(short, long)]
+    repo: Option<String>,
+
+    /// Forces an install disregarding any previously existing ones
+    #[arg(short, long)]
+    force: bool,
+}
+
+#[derive(Args, Debug)]
+struct ComponentSubCommands {
+    #[command(subcommand)]
+    cmd: ComponentCmds,
+}
+
+#[derive(Subcommand, Debug)]
+enum ComponentCmds {
+    /// Install a component
+    Install(ComponentInstallArgs),
+}
+
+#[derive(Args, Debug)]
+struct ComponentInstallArgs {
+    /// Component to install
+    component: components::Kind,
 
     /// Release version to install
     release: String,
@@ -261,6 +301,12 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             languages::print();
             Ok(())
         }
+        SubCommands::Components => {
+            debug!("running list");
+            println!("Components:\n");
+            components::print();
+            Ok(())
+        }
         SubCommands::List => {
             debug!("running list");
             cmd::list::run(&config);
@@ -292,10 +338,22 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             let github_repo = languages::get_github_repo(language);
 
+            info!(
+                "Downloading and installing {:?} for release={} id={}",
+                language, release, id
+            );
+
             let dir = cmd::install::run(language, &github_repo, release, id, repo, *force)?;
             cmd::update_links::run(Some(language))?;
 
-            config::add_install(language, id, release, dir, config_file, config)
+            config::add_install(language, id, release, dir, config_file, config)?;
+
+            info!(
+                "Completed install of {:?} for release={} id={}",
+                language, release, id
+            );
+
+            Ok(())
         }
         SubCommands::UpdateLinks => {
             debug!("running update-links");
@@ -358,9 +416,9 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 Some(release) => git::GitRef::Release(release.to_owned()),
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
-            let dir = cmd::build::run(language, &git_ref, &id, repo, *force, &config)?;
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
+            let dir = cmd::build::run(language, &git_ref, &id, repo, *force, &config)?;
 
             cmd::update_links::run(Some(language))?;
 
@@ -371,8 +429,58 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 dir,
                 config_file,
                 config,
-            )
+            )?;
+
+            info!(
+                "Completed build and install of {:?} for ref={} id={}",
+                language, git_ref, id
+            );
+
+            Ok(())
         }
+        SubCommands::Component(ComponentSubCommands {
+            cmd:
+                ComponentCmds::Install(ComponentInstallArgs {
+                    component,
+                    release,
+                    id,
+                    repo: _repo,
+                    force,
+                }),
+        }) => {
+            debug!("running component install {component:?}");
+
+            check_if_component_install_supported()?;
+
+            // if no user supplied id then use the name of
+            // the release to install
+            let id = id.as_ref().unwrap_or(release);
+
+            let c = components::Component::new(component.clone(), release)?;
+
+            let release_dir = cmd::component_install::run(&c, release, id, *force)?;
+
+            let bin_dir = config::bin_dir();
+            let _ = std::fs::create_dir_all(&bin_dir);
+
+            let (bins, _): (Vec<String>, Vec<components::Kind>) = c.bins.into_iter().unzip();
+
+            let _ = links::update(bins.into_iter(), &bin_dir)?;
+
+            config::add_component_install(
+                component,
+                &id,
+                &release.to_string(),
+                release_dir.to_string(),
+                config_file,
+                config,
+            )?;
+
+            info!("Completed install of component {component:?} with id={id}");
+
+            Ok(())
+        }
+
         _ => Err(eyre!("subcommand not implemented yet")),
     }
 }
@@ -394,6 +502,16 @@ fn check_if_install_supported(language: &languages::Language) -> Result<()> {
     }
 
     Ok(())
+}
+
+// ELP and rebar3 don't (yet) provide Windows binaries
+fn check_if_component_install_supported() -> Result<()> {
+    match (std::env::consts::ARCH, std::env::consts::OS) {
+        (_, "windows") => Err(eyre!(
+            "component install command not supported yet on Windows"
+        )),
+        _ => Ok(()),
+    }
 }
 
 fn setup_logging() {
@@ -444,7 +562,10 @@ fn main() -> Result<(), Report> {
                 let bin = Path::new(c).file_name().unwrap();
                 run::run(bin.to_str().unwrap(), args)
             }
-            None => Err(eyre!("beamup found no such command: {f:?}")),
+            None => match components::bins().iter().find(|(e, _)| e.as_str() == f) {
+                Some((e, k)) => run::run_component(e, k, args),
+                None => Err(eyre!("beamup found no such command: {f:?}")),
+            },
         }
     }
 }

@@ -1,33 +1,20 @@
 use crate::config;
 use crate::languages;
-use color_eyre::{eyre::eyre, eyre::Result};
-use std::path::Path;
+use crate::links;
+use color_eyre::eyre::Result;
 
 pub fn run(maybe_language: Option<&languages::Language>) -> Result<()> {
-    let mut has_err = false;
-    for (b, l) in languages::BIN_MAP.iter() {
-        if maybe_language.is_none() || maybe_language.is_some_and(|x| *x == *l) {
-            let bin_dir = config::bin_dir();
-            let _ = std::fs::create_dir_all(&bin_dir);
+    let bin_dir = config::bin_dir();
+    let _ = std::fs::create_dir_all(&bin_dir);
 
-            let link = Path::new(&bin_dir).join(b);
-            let beamup_exe = std::env::current_exe().unwrap();
-            debug!("linking {:?} to {:?}", link, beamup_exe);
-            let _ = std::fs::remove_file(&link);
-            match std::fs::hard_link(&beamup_exe, &link) {
-                Ok(()) => {}
-                Err(e) => {
-                    has_err = true;
-                    error!("Failed to link {:?} to {:?}: {}", link, beamup_exe, e);
-                }
-            }
-        }
-    }
-
-    // TODO: should do a multi-report error instead of this
-    if has_err {
-        Err(eyre!("Some links failed to be created"))
+    let bins: Vec<_> = if let Some(language) = maybe_language {
+        languages::BIN_MAP
+            .iter()
+            .filter_map(|(a, b)| if *b == *language { Some(a) } else { None })
+            .collect()
     } else {
-        Ok(())
-    }
+        languages::BIN_MAP.iter().map(|(a, _)| a).collect()
+    };
+
+    links::update(bins.into_iter(), &bin_dir)
 }
