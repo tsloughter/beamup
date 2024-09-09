@@ -284,7 +284,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id, repo, force
             );
 
-            let _ = check_if_install_supported(language);
+            let _ = check_if_install_supported(language)?;
 
             // if no user supplied id then use the name of
             // the release to install
@@ -377,9 +377,10 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
     }
 }
 
-// only Gleam on any platform and Erlang on Windows support binary install at this time
+// only Elixir and Gleam support install on any platform
+// Erlang only on Windows
 fn check_if_install_supported(language: &languages::Language) -> Result<()> {
-    if *language != languages::Language::Gleam && *language == languages::Language::Erlang {
+    if *language == languages::Language::Erlang {
         // install command for Erlang only supports Windows on x86 or x86_64 at this time
         match (std::env::consts::ARCH, std::env::consts::OS) {
             ("x86", "windows") => return Ok(()),
