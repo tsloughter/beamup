@@ -18,7 +18,7 @@ pub fn run(
     release: &str,
     id: &String,
     _repo: &Option<String>,
-    force: &Option<bool>,
+    force: bool,
 ) -> Result<String, Report> {
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
     let file = download_asset(language, out_dir.path(), github_repo, release)?;
