@@ -284,7 +284,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id, repo, force
             );
 
-            let _ = check_if_install_supported(language)?;
+            check_if_install_supported(language)?;
 
             // if no user supplied id then use the name of
             // the release to install

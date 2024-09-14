@@ -46,7 +46,7 @@ pub fn run(
                 languages::Language::Gleam => &release_dir.join("bin"),
                 _ => &release_dir,
             };
-            archive.extract(&extract_dir)?;
+            archive.extract(extract_dir)?;
             Ok(release_dir.into_os_string().into_string().unwrap())
         }
         _ => {
@@ -56,7 +56,7 @@ pub fn run(
                 languages::Language::Gleam => &release_dir.join("bin"),
                 _ => &release_dir,
             };
-            archive.unpack(&extract_dir)?;
+            archive.unpack(extract_dir)?;
             Ok(release_dir.into_os_string().into_string().unwrap())
         }
     }
