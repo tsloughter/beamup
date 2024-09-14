@@ -138,7 +138,7 @@ struct BuildArgs {
 
     /// Forces a build disregarding any previously existing ones
     #[arg(short, long)]
-    force: Option<bool>,
+    force: bool,
 }
 
 #[derive(Args, Debug)]
@@ -159,7 +159,7 @@ struct InstallArgs {
 
     /// Forces an install disregarding any previously existing ones
     #[arg(short, long)]
-    force: Option<bool>,
+    force: bool,
 }
 
 #[derive(Args, Debug)]
@@ -292,7 +292,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             let github_repo = languages::get_github_repo(language);
 
-            let dir = cmd::install::run(language, &github_repo, release, id, repo, force)?;
+            let dir = cmd::install::run(language, &github_repo, release, id, repo, *force)?;
             cmd::update_links::run(Some(language))?;
 
             config::add_install(language, id, release, dir, config_file, config)
@@ -358,7 +358,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 Some(release) => git::GitRef::Release(release.to_owned()),
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
-            let dir = cmd::build::run(language, &git_ref, &id, repo, force, &config)?;
+            let dir = cmd::build::run(language, &git_ref, &id, repo, *force, &config)?;
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
 

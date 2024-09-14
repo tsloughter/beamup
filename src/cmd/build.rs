@@ -48,7 +48,7 @@ pub fn run(
     git_ref: &GitRef,
     id: &String,
     _repo: &Option<String>,
-    force: &Option<bool>,
+    force: bool,
     config: &config::Config,
 ) -> Result<String> {
     debug!("Building {language} from source from git ref={git_ref} with id={id}");

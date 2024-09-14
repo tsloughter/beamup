@@ -284,7 +284,7 @@ pub fn add_install(
 pub fn language_release_dir(
     language: &languages::Language,
     id: &String,
-    force: &Option<bool>,
+    force: bool,
 ) -> Result<PathBuf> {
     let data_dir = dirs::data_local_dir();
     let release_dir = data_dir
@@ -296,11 +296,11 @@ pub fn language_release_dir(
     match release_dir.try_exists() {
         Ok(true) =>
             match force {
-                Some(true) => {
+                true => {
                     info!("Force enabled. Deleting existing release directory {release_dir:?}");
                     fs::remove_dir_all(&release_dir)?
                 },
-                _ => return Err(eyre!("Release directory for id {id:} already exists. Use `-f true` to delete {release_dir:?} and recreate instead of giving this error.")),
+                _ => return Err(eyre!("Release directory for id {id:} already exists. Use `-f` to delete {release_dir:?} and recreate instead of giving this error.")),
             }
         Ok(false) => {},
         Err(e) => return Err(eyre!(
