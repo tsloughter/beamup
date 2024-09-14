@@ -3,7 +3,6 @@ use crate::eyre;
 use crate::github;
 use color_eyre::{eyre::Report, eyre::Result, eyre::WrapErr};
 use flate2::read::GzDecoder;
-use std::faccess::{AccessMode, PathExt};
 use std::fs;
 use std::path::PathBuf;
 use tar::Archive;
@@ -16,7 +15,7 @@ pub fn run(
     id: &String,
     force: bool,
 ) -> Result<String, Report> {
-    let _ = maybe_create_release_dir(&c, id, force)?;
+    maybe_create_release_dir(c, id, force)?;
     let release_dir_string = c
         .release_dir
         .clone()
@@ -26,7 +25,7 @@ pub fn run(
     let asset_name = &c.asset_prefix;
     let github_repo = &c.repo;
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let file = github::download_asset(&asset_name, out_dir.path(), &github_repo, release)?;
+    let file = github::download_asset(asset_name, out_dir.path(), github_repo, release)?;
     debug!("file {:?} downloaded", file);
     let open_file = fs::File::open(&file).wrap_err_with(|| {
         format!(
@@ -56,7 +55,7 @@ pub fn run(
         _ => {
             // no unpacking needed, just copy to bin dir and make sure its executable
             let install_file = &c.release_dir.join("bin").join(file.file_name().unwrap());
-            let _ = std::fs::create_dir_all(&c.release_dir.join("bin"));
+            let _ = std::fs::create_dir_all(c.release_dir.join("bin"));
             fs::copy(&file, install_file).wrap_err_with(|| {
                 format!(
                     "Failed to copy {} to {}",
