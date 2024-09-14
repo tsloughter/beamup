@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2024-09-14
+
+### Added
+
+- Components support for installing elp and rebar3
+
+### Fixed
+
+- Allow -f/--force without passing the true/false value
+
 ## [0.4.7] - 2024-09-02
 
 ### Fixed
@@ -79,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Support default build options in config and env var
 
+[0.5.0]: https://github.com///compare/v0.4.7..v0.5.0
 [0.4.7]: https://github.com///compare/v0.4.6..v0.4.7
 [0.4.6]: https://github.com///compare/v0.4.5..v0.4.6
 [0.4.5]: https://github.com///compare/v0.4.4..v0.4.5
