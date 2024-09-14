@@ -2,13 +2,13 @@ use crate::components::{release_dir, Component, Kind};
 use crate::github::GithubRepo;
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
 
-static KIND_STRING: &'static str = "elp";
+const KIND_STRING: &str = "elp";
 
 pub fn new_component(release: &str) -> Result<Component> {
     Ok(Component {
         kind: Kind::Elp,
         release_dir: release_dir(KIND_STRING.to_string(), &release.to_string())?,
-        asset_prefix: asset_prefix(&release.to_string())?,
+        asset_prefix: asset_prefix(release)?,
         repo: get_github_repo(),
         bins: bins(),
     })

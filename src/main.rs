@@ -465,11 +465,11 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             let (bins, _): (Vec<String>, Vec<components::Kind>) = c.bins.into_iter().unzip();
 
-            let _ = links::update(bins.into_iter(), &bin_dir)?;
+            links::update(bins.into_iter(), &bin_dir)?;
 
             config::add_component_install(
                 component,
-                &id,
+                id,
                 &release.to_string(),
                 release_dir.to_string(),
                 config_file,
