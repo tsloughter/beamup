@@ -4,5 +4,11 @@
   },
   "build": {
     "path_prefix": "beamup"
+  },
+  "marketing": {
+    "social": {
+      "image": "https://i.imgur.com/fFx86RE.png",
+      "image_alt": "beamup logo"
+    }
   }
 }
