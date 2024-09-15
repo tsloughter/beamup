@@ -84,7 +84,7 @@ fn set_permissions(to: &PathBuf) -> Result<()> {
 }
 
 #[cfg(windows)]
-fn set_permissions(to: PathBuf) -> Result<()> {
+fn set_permissions(_to: &PathBuf) -> Result<()> {
     Ok(())
 }
 
