@@ -16,3 +16,6 @@ in-docker-shelltests: build
 
 shelltests:
     shelltest -c --diff --debug --all shelltests/*.test
+
+shelltests-macos:
+    shelltest -c --diff --debug --all shelltests/macos/*.test

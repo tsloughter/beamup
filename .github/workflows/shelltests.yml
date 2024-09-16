@@ -6,12 +6,20 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}-shelltest
+
 jobs:
   run:
     strategy:
       matrix:
         os: ["ubuntu-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -19,18 +27,21 @@ jobs:
     - name: Install just
       uses: extractions/setup-just@v1
 
-    - uses: haskell-actions/setup@v2
-      with:
-        ghc-version: '9.8'
-        enable-stack: true
-        stack-version: 'latest'
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@master
 
     - name: Install shelltestrunner
-      run: stack install shelltestrunner-1.10
+      run: brew install shelltestrunner
 
     - name: Build beamup
       run: cargo build
 
-    - name: Run ShellTests
+    - name: Run Shelltests
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: just shelltests
+
+    - name: Run MacOS ShellTests
+      if: ${{ matrix.os == 'macos-latest' }}
       run: |
-        just shelltests
+        just shelltests-macos

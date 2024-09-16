@@ -26,6 +26,7 @@ mod github;
 mod languages;
 mod links;
 mod run;
+mod utils;
 
 #[derive(Parser, Debug)]
 #[command(version, about = "Manage BEAM language installs.", long_about = None)]
@@ -314,8 +315,11 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         }
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: repo={:?}", language);
+
+            let language_struct = languages::LanguageStruct::new(language, "", "", &config)?;
+
             // TODO: should return Result type
-            cmd::releases::run(language);
+            cmd::releases::run(&language_struct);
             Ok(())
         }
         SubCommands::Install(InstallArgs {
@@ -336,14 +340,14 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             // the release to install
             let id = id.as_ref().unwrap_or(release);
 
-            let github_repo = languages::get_github_repo(language);
-
             info!(
                 "Downloading and installing {:?} for release={} id={}",
                 language, release, id
             );
 
-            let dir = cmd::install::run(language, &github_repo, release, id, repo, *force)?;
+            let language_struct = languages::LanguageStruct::new(language, release, id, &config)?;
+
+            let dir = cmd::install::run(&language_struct, release, id, repo, *force)?;
             cmd::update_links::run(Some(language))?;
 
             config::add_install(language, id, release, dir, config_file, config)?;
@@ -417,8 +421,11 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
 
+            let language_struct =
+                languages::LanguageStruct::new(language, &git_ref.to_string(), &id, &config)?;
+
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
-            let dir = cmd::build::run(language, &git_ref, &id, repo, *force, &config)?;
+            let dir = cmd::build::run(&language_struct, &git_ref, &id, repo, *force, &config)?;
 
             cmd::update_links::run(Some(language))?;
 
@@ -493,6 +500,8 @@ fn check_if_install_supported(language: &languages::Language) -> Result<()> {
         match (std::env::consts::ARCH, std::env::consts::OS) {
             ("x86", "windows") => return Ok(()),
             ("x86_64", "windows") => return Ok(()),
+            ("x86_64", "macos") => return Ok(()),
+            ("aarch64", "macos") => return Ok(()),
             (os, arch) => {
                 return Err(eyre!(
                     "install command not supported yet for language {language:?} on {os:?} {arch:?}"

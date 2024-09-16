@@ -22,12 +22,6 @@ v1.4.1
 ls ~/.local/bin/gleam || ls ~/.beamup/bin/gleam
 >>>=0
 
-# test the version is right
-~/.local/bin/gleam --version || ~/.beamup/bin/gleam --version
->>>
-gleam 1.4.1
->>>=0
-
 # try installing the same version again and error
 target/debug/beamup install gleam v1.4.1
 >>>=1

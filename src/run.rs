@@ -11,6 +11,7 @@ pub fn run_component(bin: &str, kind: &components::Kind, args: Args) -> Result<(
     let cmd = Path::new(&dir).join("bin").join(bin);
 
     debug!("running component {:?}", cmd);
+    debug!("running with args {:?}", args);
 
     let mut binding = Command::new(cmd);
     let cmd = binding.args(args);
@@ -24,6 +25,7 @@ pub fn run(bin: &str, args: Args) -> Result<()> {
     let cmd = Path::new(&dir).join("bin").join(bin);
 
     debug!("running language {:?}", cmd);
+    debug!("running with args {:?}", args);
 
     let mut binding = Command::new(cmd);
     let cmd = binding.args(args);

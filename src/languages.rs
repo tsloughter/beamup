@@ -1,7 +1,9 @@
+use crate::config;
 use crate::github::GithubRepo;
 use crate::languages;
 use clap::ValueEnum;
 use color_eyre::{eyre::eyre, eyre::Result};
+use std::path::PathBuf;
 use strum::IntoEnumIterator;
 pub mod elixir;
 pub mod erlang;
@@ -78,11 +80,27 @@ impl std::fmt::Display for Language {
     }
 }
 
-pub fn get_github_repo(language: &Language) -> GithubRepo {
-    match language {
-        Language::Gleam => gleam::get_github_repo(),
-        Language::Erlang => erlang::get_github_repo(),
-        Language::Elixir => elixir::get_github_repo(),
+pub struct LanguageStruct {
+    pub language: Language,
+    pub release_dir: PathBuf,
+    pub asset_prefix: String,
+    pub source_repo: GithubRepo,
+    pub binary_repo: GithubRepo,
+    pub bins: Vec<(String, Language)>,
+}
+
+impl LanguageStruct {
+    pub fn new(
+        language: &Language,
+        release: &str,
+        id: &str,
+        config: &config::Config,
+    ) -> Result<Self> {
+        match language {
+            Language::Erlang => erlang::new(release, id, config),
+            Language::Elixir => elixir::new(release, id, config),
+            Language::Gleam => gleam::new(release, id, config),
+        }
     }
 }
 
@@ -91,4 +109,13 @@ pub fn bin_to_language(bin: &str) -> Result<&languages::Language> {
         Some((_, language)) => Ok(language),
         _ => Err(eyre!("No language to run command {bin} for found")),
     }
+}
+
+pub fn release_dir(language_str: String, id: &String, _config: &config::Config) -> Result<PathBuf> {
+    let release_dir = config::data_dir()?
+        .join("beamup")
+        .join(language_str)
+        .join(id);
+
+    Ok(release_dir)
 }
