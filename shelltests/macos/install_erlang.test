@@ -1,0 +1,9 @@
+# test an install of erlang on macos
+target/debug/beamup install erlang OTP-27.1
+>>>=0
+
+find /Users/runner/Library -name erlc
+>>>=0
+
+DEBUG=1 ~/.beamup/bin/erlc
+>>>=0

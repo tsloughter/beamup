@@ -1,7 +1,7 @@
 use crate::config;
 use crate::git::GitRef;
 use crate::github::download_release_tarball;
-use crate::languages::{get_github_repo, Language};
+use crate::languages::LanguageStruct;
 use color_eyre::{eyre::Result, eyre::WrapErr};
 use console::Emoji;
 use flate2::read::GzDecoder;
@@ -44,29 +44,32 @@ enum BuildStep<'a> {
 }
 
 pub fn run(
-    language: &Language,
+    language: &LanguageStruct,
     git_ref: &GitRef,
     id: &String,
     _repo: &Option<String>,
     force: bool,
     config: &config::Config,
 ) -> Result<String> {
-    debug!("Building {language} from source from git ref={git_ref} with id={id}");
+    debug!(
+        "Building {:?} from source from git ref={git_ref} with id={id}",
+        language.language
+    );
 
-    let release_dir = config::language_release_dir(language, id, force)?;
+    let release_dir = config::language_release_dir(&language.language, id, force)?;
 
     //maybe grab configure options from environment
     let key = "BEAMUP_BUILD_OPTIONS";
     let user_build_options = match env::var(key) {
         Ok(options) => options,
-        _ => config::lookup_default_build_options(language, config),
+        _ => config::lookup_default_build_options(&language.language, config),
     };
 
-    let github_repo = get_github_repo(language);
+    let github_repo = &language.source_repo;
     let release = git_ref.to_string();
 
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let file = download_release_tarball(language, out_dir.path(), &github_repo, &release)?;
+    let file = download_release_tarball(&language.language, out_dir.path(), github_repo, &release)?;
 
     let tar_gz = File::open(&file).wrap_err_with(|| {
         format!(

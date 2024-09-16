@@ -1,4 +1,3 @@
-use crate::config;
 use crate::languages::Language;
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
 use console::{style, Emoji};
@@ -19,46 +18,6 @@ pub type GithubRelease = String;
 pub struct GithubRepo {
     pub org: String,
     pub repo: String,
-}
-
-pub fn language_asset_name(language: &Language, tag: &str) -> Result<String> {
-    let asset_name = match language {
-        Language::Gleam => {
-            let suffix = match (std::env::consts::ARCH, std::env::consts::OS) {
-                ("x86_64", "linux") => "x86_64-unknown-linux-musl.tar.gz",
-                ("aarch64", "linux") => "aarch64-unknown-linux-musl.tar.gz",
-                ("x86_64", "macos") => "x86_64-apple-darwin.tar.gz",
-                ("aarch64", "macos") => "aarch64-apple-darwin.tar.gz",
-                ("x86_64", "windows") => "x86_64-pc-windows-msvc.zip",
-                (arch, os) => {
-                    let e: Report =
-                        eyre!("no {language} asset found to support arch:{arch} os:{os}");
-                    return Err(e);
-                }
-            };
-
-            format!("{language}-{tag}-{suffix}")
-        }
-        Language::Erlang => {
-            let vsn = tag.strip_prefix("OTP-").unwrap_or(tag);
-            match (std::env::consts::ARCH, std::env::consts::OS) {
-                ("x86", "windows") => format!("otp_win32_{vsn}.exe"),
-                ("x86_64", "windows") => format!("otp_win64_{vsn}.exe"),
-                (arch, os) => {
-                    let e: Report =
-                        eyre!("no {language} asset found to support arch:{arch} os:{os}");
-                    return Err(e);
-                }
-            }
-        }
-        Language::Elixir => {
-            // find dir of active Erlang
-            let otp_major_vsn = config::get_otp_major_vsn()?;
-            format!("elixir-otp-{otp_major_vsn:}.zip")
-        }
-    };
-
-    Ok(asset_name)
 }
 
 pub fn print_releases(GithubRepo { org, repo }: &GithubRepo) {

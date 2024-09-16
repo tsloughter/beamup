@@ -1,6 +1,6 @@
 use crate::components;
-use crate::eyre;
 use crate::github;
+use crate::utils;
 use color_eyre::{eyre::Report, eyre::Result, eyre::WrapErr};
 use flate2::read::GzDecoder;
 use std::fs;
@@ -12,10 +12,10 @@ use zip;
 pub fn run(
     c: &components::Component,
     release: &String,
-    id: &String,
+    _id: &str,
     force: bool,
 ) -> Result<String, Report> {
-    maybe_create_release_dir(c, id, force)?;
+    utils::check_release_dir(&c.release_dir, force)?;
     let release_dir_string = c
         .release_dir
         .clone()
@@ -33,6 +33,8 @@ pub fn run(
             release, &file
         )
     })?;
+
+    utils::maybe_create_release_dir(&c.release_dir, force)?;
 
     // TODO: better ways to check the type than the extension
     let ext = file.extension().map_or("", |e| e.to_str().unwrap_or(""));
@@ -85,26 +87,5 @@ fn set_permissions(to: &PathBuf) -> Result<()> {
 
 #[cfg(windows)]
 fn set_permissions(_to: &PathBuf) -> Result<()> {
-    Ok(())
-}
-
-fn maybe_create_release_dir(c: &components::Component, id: &String, force: bool) -> Result<()> {
-    match c.release_dir.try_exists() {
-        Ok(true) =>
-            match force {
-                true => {
-                    info!("Force enabled. Deleting existing release directory {:?}", c.release_dir);
-                    fs::remove_dir_all(&c.release_dir)?
-                },
-                _ => return Err(eyre!("Release directory for id {id:} already exists. Use `-f true` to delete {:?} and recreate instead of giving this error.", c.release_dir)),
-            }
-        Ok(false) => {},
-        Err(e) => return Err(eyre!(
-            "Unable to check for existence of release directory for id {id}: {e:?}"
-        )),
-    };
-
-    let _ = std::fs::create_dir_all(&c.release_dir);
-
     Ok(())
 }
