@@ -1,6 +1,6 @@
 use crate::components::{release_dir, Component, Kind};
 use crate::github::GithubRepo;
-use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
+use color_eyre::eyre::Result;
 
 const KIND_STRING: &str = "elp";
 
@@ -19,18 +19,16 @@ fn bins() -> Vec<(String, Kind)> {
 }
 
 fn asset_prefix(_release: &str) -> Result<String> {
-    let suffix = match (std::env::consts::ARCH, std::env::consts::OS) {
-        ("x86_64", "linux") => "linux-x86_64-unknown-linux-gnu",
-        ("aarch64", "linux") => "linux-aarch64-unknown-linux-gnu",
-        ("x86_64", "macos") => "macos-x86_64-apple-darwin",
-        ("aarch64", "macos") => "macos-aarch64-apple-darwin",
-        (arch, os) => {
-            let e: Report = eyre!("no elp asset found to support arch:{arch} os:{os}");
-            return Err(e);
+    match (std::env::consts::ARCH, std::env::consts::OS) {
+        ("x86_64", "linux") => Ok("elp-linux-x86_64-unknown-linux-gnu".to_string()),
+        ("aarch64", "linux") => Ok("elp-linux-aarch64-unknown-linux-gnu".to_string()),
+        ("x86_64", "macos") => Ok("elp-macos-x86_64-apple-darwin".to_string()),
+        ("aarch64", "macos") => Ok("elp-macos-aarch64-apple-darwin".to_string()),
+        _ => {
+            // TODO: maybe turn this into an Option type and return None
+            Ok("".to_string())
         }
-    };
-
-    Ok(format!("elp-{suffix}"))
+    }
 }
 
 fn get_github_repo() -> GithubRepo {
