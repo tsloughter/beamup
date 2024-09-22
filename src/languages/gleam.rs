@@ -21,21 +21,15 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
 #[cfg(unix)]
 fn bins() -> Vec<(String, languages::Language)> {
     vec![
-        ("elixir".to_string(), languages::Language::Elixir),
-        ("elixirc".to_string(), languages::Language::Elixir),
-        ("iex".to_string(), languages::Language::Elixir),
-        ("mix".to_string(), languages::Language::Elixir),
+        ("gleam".to_string(), languages::Language::Gleam),
     ]
 }
 
 #[cfg(windows)]
 fn bins() -> Vec<(String, languages::Language)> {
     vec![
-        ("elixir.bat".to_string(), languages::Language::Elixir),
-        ("elixirc.bat".to_string(), languages::Language::Elixir),
-        ("iex.bat".to_string(), languages::Language::Elixir),
-        ("mix.bat".to_string(), languages::Language::Elixir),
-        ("mix.ps1".to_string(), languages::Language::Elixir),
+        ("gleam.exe".to_string(), languages::Language::Gleam),
+        ("gleam".to_string(), languages::Language::Gleam),
     ]
 }
 

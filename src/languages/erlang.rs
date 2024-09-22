@@ -49,6 +49,17 @@ fn bins() -> Vec<(String, languages::Language)> {
         ("run_test.exe".to_string(), languages::Language::Erlang),
         ("to_erl.exe".to_string(), languages::Language::Erlang),
         ("typer.exe".to_string(), languages::Language::Erlang),
+        ("ct_run".to_string(), languages::Language::Erlang),
+        ("dialyzer".to_string(), languages::Language::Erlang),
+        ("epmd".to_string(), languages::Language::Erlang),
+        ("erl".to_string(), languages::Language::Erlang),
+        ("erlc".to_string(), languages::Language::Erlang),
+        ("erl_call".to_string(), languages::Language::Erlang),
+        ("escript".to_string(), languages::Language::Erlang),
+        ("run_erl".to_string(), languages::Language::Erlang),
+        ("run_test".to_string(), languages::Language::Erlang),
+        ("to_erl".to_string(), languages::Language::Erlang),
+        ("typer".to_string(), languages::Language::Erlang),
     ]
 }
 
