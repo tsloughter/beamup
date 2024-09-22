@@ -10,6 +10,7 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
     Ok(LanguageStruct {
         language: Language::Erlang,
         release_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
+        extract_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
         asset_prefix: asset_prefix(release, config)?,
         source_repo: get_source_github_repo(release, config),
         binary_repo: get_binary_github_repo(release, config),

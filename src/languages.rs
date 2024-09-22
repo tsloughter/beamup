@@ -83,6 +83,7 @@ impl std::fmt::Display for Language {
 pub struct LanguageStruct {
     pub language: Language,
     pub release_dir: PathBuf,
+    pub extract_dir: PathBuf,
     pub asset_prefix: String,
     pub source_repo: GithubRepo,
     pub binary_repo: GithubRepo,

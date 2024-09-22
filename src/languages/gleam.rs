@@ -2,7 +2,7 @@ use crate::config;
 use crate::github::GithubRepo;
 use crate::languages;
 use crate::languages::{Language, LanguageStruct};
-use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
+use color_eyre::eyre::Result;
 
 const LANGUAGE_STRING: &str = "gleam";
 
@@ -10,6 +10,7 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
     Ok(LanguageStruct {
         language: Language::Gleam,
         release_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
+        extract_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?.join("bin"),
         asset_prefix: asset_prefix(release, config)?,
         source_repo: get_source_github_repo(release, config),
         binary_repo: get_binary_github_repo(release, config),
@@ -39,19 +40,17 @@ fn bins() -> Vec<(String, languages::Language)> {
 }
 
 fn asset_prefix(release: &str, _config: &config::Config) -> Result<String> {
-    let suffix = match (std::env::consts::ARCH, std::env::consts::OS) {
-        ("x86_64", "linux") => "x86_64-unknown-linux-musl.tar.gz",
-        ("aarch64", "linux") => "aarch64-unknown-linux-musl.tar.gz",
-        ("x86_64", "macos") => "x86_64-apple-darwin.tar.gz",
-        ("aarch64", "macos") => "aarch64-apple-darwin.tar.gz",
-        ("x86_64", "windows") => "x86_64-pc-windows-msvc.zip",
-        (arch, os) => {
-            let e: Report = eyre!("no Gleam asset found to support arch:{arch} os:{os}");
-            return Err(e);
+    match (std::env::consts::ARCH, std::env::consts::OS) {
+        ("x86_64", "linux") => Ok(format!("gleam-{release}-x86_64-unknown-linux-musl.tar.gz")),
+        ("aarch64", "linux") => Ok(format!("gleam-{release}-aarch64-unknown-linux-musl.tar.gz")),
+        ("x86_64", "macos") => Ok(format!("gleam-{release}-x86_64-apple-darwin.tar.gz")),
+        ("aarch64", "macos") => Ok(format!("gleam-{release}-aarch64-apple-darwin.tar.gz")),
+        ("x86_64", "windows") => Ok(format!("gleam-{release}-x86_64-pc-windows-msvc.zip")),
+        _ => {
+            // TODO: maybe turn this into an Option type and return None
+            Ok("".to_string())
         }
-    };
-
-    Ok(format!("gleam-{release}-{suffix}"))
+    }
 }
 
 pub fn get_binary_github_repo(_release: &str, _config: &config::Config) -> GithubRepo {

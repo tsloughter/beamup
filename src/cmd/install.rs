@@ -36,6 +36,8 @@ pub fn run(
 
     utils::maybe_create_release_dir(release_dir, force)?;
 
+    let extract_dir = &language.extract_dir;
+
     // TODO: better ways to check the type than the extension
     let ext = file.extension().map_or("", |e| e.to_str().unwrap_or(""));
     match ext {
@@ -46,20 +48,12 @@ pub fn run(
         }
         "zip" => {
             let mut archive = zip::ZipArchive::new(open_file)?;
-            let extract_dir = match language.language {
-                languages::Language::Gleam => &release_dir.join("bin"),
-                _ => release_dir,
-            };
             archive.extract(extract_dir)?;
             Ok(release_dir.clone().into_os_string().into_string().unwrap())
         }
         _ => {
             let tar = GzDecoder::new(open_file);
             let mut archive = Archive::new(tar);
-            let extract_dir = match language.language {
-                languages::Language::Gleam => &release_dir.join("bin"),
-                _ => release_dir,
-            };
             archive.unpack(extract_dir)?;
             Ok(release_dir.clone().into_os_string().into_string().unwrap())
         }

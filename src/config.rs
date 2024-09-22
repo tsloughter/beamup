@@ -425,7 +425,7 @@ pub fn language_release_dir(
     id: &String,
     force: bool,
 ) -> Result<PathBuf> {
-    let data_dir = dirs::data_local_dir();
+    let data_dir = data_dir();
     let release_dir = data_dir
         .unwrap()
         .join("beamup")
