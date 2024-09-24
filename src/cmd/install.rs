@@ -1,4 +1,3 @@
-//use crate::config;
 use crate::github;
 use crate::languages;
 use crate::utils;
@@ -16,8 +15,6 @@ use std::process::ExitStatus;
 pub fn run(
     language: &languages::LanguageStruct,
     release: &str,
-    _id: &str,
-    _repo: &Option<String>,
     force: bool,
 ) -> Result<String, Report> {
     let release_dir = &language.release_dir;

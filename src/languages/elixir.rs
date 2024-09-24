@@ -11,6 +11,7 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
         language: Language::Elixir,
         release_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
         extract_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
+        // TODO: make this into a closure or method so we only have to run it when we need the asset
         asset_prefix: asset_prefix(release, config)?,
         source_repo: get_source_github_repo(release, config),
         binary_repo: get_binary_github_repo(release, config),
@@ -19,7 +20,7 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
 }
 
 #[cfg(unix)]
-fn bins() -> Vec<(String, languages::Language)> {
+pub fn bins() -> Vec<(String, languages::Language)> {
     vec![
         ("elixir".to_string(), languages::Language::Elixir),
         ("elixirc".to_string(), languages::Language::Elixir),
@@ -29,7 +30,7 @@ fn bins() -> Vec<(String, languages::Language)> {
 }
 
 #[cfg(windows)]
-fn bins() -> Vec<(String, languages::Language)> {
+pub fn bins() -> Vec<(String, languages::Language)> {
     vec![
         ("elixir.bat".to_string(), languages::Language::Elixir),
         ("elixirc.bat".to_string(), languages::Language::Elixir),

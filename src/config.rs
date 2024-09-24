@@ -118,7 +118,7 @@ fn get_local_id(language_str: String, local_config: &Option<toml::Table>) -> Opt
 }
 
 pub fn get_otp_major_vsn() -> Result<String> {
-    let dir = match install_to_use("erl") {
+    let dir = match install_to_use_by_language(languages::Language::Erlang) {
         Ok(dir) => Ok(dir),
         Err(_) => Err(eyre!("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")),
     }?;
@@ -169,10 +169,16 @@ pub fn component_install_to_use(kind: &components::Kind) -> Result<String> {
     lookup_component_install_by_id(id, Some(component_config))
 }
 
-pub fn install_to_use(bin: &str) -> Result<String> {
-    let language = languages::bin_to_language(bin)?;
+
+pub fn install_to_use_by_bin(bin: &str) -> Result<String> {
     let (_, config) = home_config()?;
-    let language_config = get_language_config(language, &config);
+    let language = languages::bin_to_language(bin.to_string(), &config)?;
+    install_to_use_by_language(language)
+}
+
+fn install_to_use_by_language(language: languages::Language) -> Result<String> {
+    let (_, config) = home_config()?;
+    let language_config = get_language_config(&language, &config);
     let local_config = local_config();
     let language_str = language.to_string();
 

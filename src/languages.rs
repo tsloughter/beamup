@@ -9,65 +9,6 @@ pub mod elixir;
 pub mod erlang;
 pub mod gleam;
 
-#[cfg(unix)]
-pub const BIN_MAP: &[(&str, languages::Language)] = &[
-    // Gleam
-    ("gleam", languages::Language::Gleam),
-    // Erlang
-    ("ct_run", languages::Language::Erlang),
-    ("dialyzer", languages::Language::Erlang),
-    ("epmd", languages::Language::Erlang),
-    ("erl", languages::Language::Erlang),
-    ("erlc", languages::Language::Erlang),
-    ("erl_call", languages::Language::Erlang),
-    ("escript", languages::Language::Erlang),
-    ("run_erl", languages::Language::Erlang),
-    ("run_test", languages::Language::Erlang),
-    ("to_erl", languages::Language::Erlang),
-    ("typer", languages::Language::Erlang),
-    // Elixir
-    ("elixir", languages::Language::Elixir),
-    ("elixirc", languages::Language::Elixir),
-    ("iex", languages::Language::Elixir),
-    ("mix", languages::Language::Elixir),
-    ("mix", languages::Language::Elixir),
-];
-
-#[cfg(windows)]
-pub const BIN_MAP: &[(&str, languages::Language)] = &[
-    // Gleam
-    ("gleam.exe", languages::Language::Gleam),
-    // Erlang
-    ("ct_run.exe", languages::Language::Erlang),
-    ("dialyzer.exe", languages::Language::Erlang),
-    ("epmd.exe", languages::Language::Erlang),
-    ("erl.exe", languages::Language::Erlang),
-    ("erlc.exe", languages::Language::Erlang),
-    ("erl_call.exe", languages::Language::Erlang),
-    ("escript.exe", languages::Language::Erlang),
-    ("run_erl.exe", languages::Language::Erlang),
-    ("run_test.exe", languages::Language::Erlang),
-    ("to_erl.exe", languages::Language::Erlang),
-    ("typer.exe", languages::Language::Erlang),
-    ("ct_run", languages::Language::Erlang),
-    ("dialyzer", languages::Language::Erlang),
-    ("epmd", languages::Language::Erlang),
-    ("erl", languages::Language::Erlang),
-    ("erlc", languages::Language::Erlang),
-    ("erl_call", languages::Language::Erlang),
-    ("escript", languages::Language::Erlang),
-    ("run_erl", languages::Language::Erlang),
-    ("run_test", languages::Language::Erlang),
-    ("to_erl", languages::Language::Erlang),
-    ("typer", languages::Language::Erlang),
-    // Elixir
-    ("elixir.bat", languages::Language::Elixir),
-    ("elixirc.bat", languages::Language::Elixir),
-    ("iex.bat", languages::Language::Elixir),
-    ("mix.bat", languages::Language::Elixir),
-    ("mix.ps1", languages::Language::Elixir),
-];
-
 #[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
 pub enum Language {
     Elixir,
@@ -91,6 +32,20 @@ impl std::fmt::Display for Language {
     }
 }
 
+pub fn bins(_config: &config::Config) -> Vec<(String, Language)> {
+    let mut bins = vec![];
+    let mut elixir_bins = elixir::bins();
+    let mut erlang_bins = erlang::bins();
+    let mut gleam_bins = gleam::bins();
+
+    bins.append(&mut elixir_bins);
+    bins.append(&mut erlang_bins);
+    bins.append(&mut gleam_bins);
+
+    bins
+}
+
+#[allow(dead_code)]
 pub struct LanguageStruct {
     pub language: Language,
     pub release_dir: PathBuf,
@@ -116,9 +71,9 @@ impl LanguageStruct {
     }
 }
 
-pub fn bin_to_language(bin: &str) -> Result<&languages::Language> {
-    match languages::BIN_MAP.iter().find(|&(k, _)| *k == bin) {
-        Some((_, language)) => Ok(language),
+pub fn bin_to_language(bin: String, config: &config::Config) -> Result<languages::Language> {
+    match bins(config).iter().find(|&(k, _)| *k == bin) {
+        Some((_, language)) => Ok(language.clone()),
         _ => Err(eyre!("No language to run command {bin} for found")),
     }
 }

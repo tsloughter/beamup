@@ -19,14 +19,14 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
 }
 
 #[cfg(unix)]
-fn bins() -> Vec<(String, languages::Language)> {
+pub fn bins() -> Vec<(String, languages::Language)> {
     vec![
         ("gleam".to_string(), languages::Language::Gleam),
     ]
 }
 
 #[cfg(windows)]
-fn bins() -> Vec<(String, languages::Language)> {
+pub fn bins() -> Vec<(String, languages::Language)> {
     vec![
         ("gleam.exe".to_string(), languages::Language::Gleam),
         ("gleam".to_string(), languages::Language::Gleam),
