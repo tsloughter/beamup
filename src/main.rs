@@ -283,6 +283,7 @@ fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
 }
 
 fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
+
     let cli = Cli::parse();
 
     let (config_file, config) = match &cli.config {
@@ -347,8 +348,8 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             let language_struct = languages::LanguageStruct::new(language, release, id, &config)?;
 
-            let dir = cmd::install::run(&language_struct, release, id, repo, *force)?;
-            cmd::update_links::run(Some(language))?;
+            let dir = cmd::install::run(&language_struct, release, *force)?;
+            cmd::update_links::run(Some(language), &config)?;
 
             config::add_install(language, id, release, dir, config_file, config)?;
 
@@ -362,7 +363,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         SubCommands::UpdateLinks => {
             debug!("running update-links");
 
-            cmd::update_links::run(None)?;
+            cmd::update_links::run(None, &config)?;
 
             info!("Updated links of language binaries to current beamup install");
 
@@ -427,7 +428,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
             let dir = cmd::build::run(&language_struct, &git_ref, &id, repo, *force, &config)?;
 
-            cmd::update_links::run(Some(language))?;
+            cmd::update_links::run(Some(language), &config)?;
 
             config::add_install(
                 language,
@@ -465,7 +466,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             let c = components::Component::new(component.clone(), release)?;
 
-            let release_dir = cmd::component_install::run(&c, release, id, *force)?;
+            let release_dir = cmd::component_install::run(&c, release, *force)?;
 
             let bin_dir = config::bin_dir();
             let _ = std::fs::create_dir_all(&bin_dir);
@@ -566,7 +567,8 @@ fn main() -> Result<(), Report> {
             }
         }
     } else {
-        match languages::BIN_MAP.iter().find(|&(k, _)| *k == f) {
+        let (_, config) = config::home_config()?;
+        match languages::bins(&config).iter().find(|&(k, _)| *k == f.to_str().unwrap()) {
             Some((c, _)) => {
                 let bin = Path::new(c).file_name().unwrap();
                 run::run(bin.to_str().unwrap(), args)

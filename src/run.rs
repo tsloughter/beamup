@@ -28,7 +28,7 @@ pub fn run_component(bin: &str, kind: &components::Kind, args: Args) -> Result<(
 
 pub fn run(bin: &str, args: Args) -> Result<()> {
     // no -c argument available in this case
-    let dir = config::install_to_use(bin)?;
+    let dir = config::install_to_use_by_bin(bin)?;
     let cmd = Path::new(bin);
 
     debug!("running language command {:?}", cmd);

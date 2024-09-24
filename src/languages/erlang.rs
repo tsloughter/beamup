@@ -19,7 +19,7 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
 }
 
 #[cfg(unix)]
-fn bins() -> Vec<(String, languages::Language)> {
+pub fn bins() -> Vec<(String, languages::Language)> {
     vec![
         ("ct_run".to_string(), languages::Language::Erlang),
         ("dialyzer".to_string(), languages::Language::Erlang),
@@ -36,7 +36,7 @@ fn bins() -> Vec<(String, languages::Language)> {
 }
 
 #[cfg(windows)]
-fn bins() -> Vec<(String, languages::Language)> {
+pub fn bins() -> Vec<(String, languages::Language)> {
     vec![
         ("ct_run.exe".to_string(), languages::Language::Erlang),
         ("dialyzer.exe".to_string(), languages::Language::Erlang),

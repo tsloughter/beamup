@@ -12,7 +12,6 @@ use zip;
 pub fn run(
     c: &components::Component,
     release: &String,
-    _id: &str,
     force: bool,
 ) -> Result<String, Report> {
     utils::check_release_dir(&c.release_dir, force)?;
