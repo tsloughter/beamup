@@ -6,20 +6,12 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}-shelltest
-
 jobs:
   run:
     strategy:
       matrix:
         os: ["ubuntu-latest", "macos-latest"]
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
     steps:
     - name: Checkout
       uses: actions/checkout@v4
