@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2024-09-14
+## [0.6.0] - 2024-09-26
+
+### Added
+
+- Support binary install of erlang on macos
+
+### Fixed
+
+- Search with .exe and without in windows for bins
+
+## [0.5.0] - 2024-09-15
 
 ### Added
 
@@ -89,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Support default build options in config and env var
 
+[0.6.0]: https://github.com///compare/v0.5.0..0.6.0
 [0.5.0]: https://github.com///compare/v0.4.7..v0.5.0
 [0.4.7]: https://github.com///compare/v0.4.6..v0.4.7
 [0.4.6]: https://github.com///compare/v0.4.5..v0.4.6
