@@ -464,7 +464,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             // the release to install
             let id = id.as_ref().unwrap_or(release);
 
-            let c = components::Component::new(component.clone(), release)?;
+            let c = components::Component::new(component.clone(), release, &config)?;
 
             let release_dir = cmd::component_install::run(&c, release, *force)?;
 

@@ -1,6 +1,7 @@
 use clap::ValueEnum;
 pub mod elp;
 pub mod rebar3;
+pub mod erlang_ls;
 use crate::config;
 use crate::github::GithubRepo;
 use color_eyre::eyre::Result;
@@ -11,6 +12,7 @@ use strum::IntoEnumIterator;
 pub enum Kind {
     Elp,
     Rebar3,
+    ErlangLS
 }
 
 impl std::fmt::Display for Kind {
@@ -18,6 +20,7 @@ impl std::fmt::Display for Kind {
         match self {
             Kind::Elp => write!(f, "elp"),
             Kind::Rebar3 => write!(f, "rebar3"),
+            Kind::ErlangLS => write!(f, "erlang_ls"),
         }
     }
 }
@@ -29,15 +32,18 @@ pub fn print() {
 }
 
 pub fn bins() -> Vec<(String, Kind)> {
-    Kind::iter()
-        .flat_map(|kind| {
-            // TODO: Fix me, needs to be able to fail properly if data_local_dir fails
-            let c = Component::new(kind.clone(), "").unwrap();
+    let mut bins = vec![];
+    let mut erlang_ls_bins = erlang_ls::bins();
+    let mut elp_bins = elp::bins();
+    let mut rebar3_bins = rebar3::bins();
 
-            c.bins
-        })
-        .collect()
+    bins.append(&mut erlang_ls_bins);
+    bins.append(&mut elp_bins);
+    bins.append(&mut rebar3_bins);
+
+    bins
 }
+
 
 pub struct Component {
     pub kind: Kind,
@@ -48,10 +54,11 @@ pub struct Component {
 }
 
 impl Component {
-    pub fn new(kind: Kind, release: &str) -> Result<Self> {
+    pub fn new(kind: Kind, release: &str, config: &config::Config) -> Result<Self> {
         match kind {
-            Kind::Elp => elp::new_component(release),
-            Kind::Rebar3 => rebar3::new_component(release),
+            Kind::Elp => elp::new_component(release, config),
+            Kind::Rebar3 => rebar3::new_component(release, config),
+            Kind::ErlangLS => erlang_ls::new_component(release, config),
         }
     }
 }

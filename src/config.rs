@@ -17,6 +17,7 @@ pub struct Config {
     elixir: Option<LanguageConfig>,
     elp: Option<ComponentConfig>,
     rebar3: Option<ComponentConfig>,
+    erlang_ls: Option<ComponentConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
@@ -62,6 +63,7 @@ fn get_component_config(kind: &components::Kind, config: &Config) -> ComponentCo
     match kind {
         components::Kind::Elp => config.elp.clone().unwrap_or_default(),
         components::Kind::Rebar3 => config.rebar3.clone().unwrap_or_default(),
+        components::Kind::ErlangLS => config.erlang_ls.clone().unwrap_or_default(),
     }
 }
 
@@ -161,6 +163,7 @@ pub fn component_install_to_use(kind: &components::Kind) -> Result<String> {
             match kind {
                 components::Kind::Elp => get_component_default_id(&config.elp)?,
                 components::Kind::Rebar3 => get_component_default_id(&config.rebar3)?,
+                components::Kind::ErlangLS => get_component_default_id(&config.erlang_ls)?,
             }
         }
         Some(id) => id.clone(),
@@ -419,6 +422,10 @@ pub fn add_component_install(
             rebar3: Some(updated_component_config),
             ..config
         },
+        components::Kind::ErlangLS => Config {
+            erlang_ls: Some(updated_component_config),
+            ..config
+        },
     };
 
     let _ = write_config(config_file, new_config);
@@ -515,6 +522,11 @@ pub fn home_config_file() -> Result<String> {
                 default_build_options: None,
             }),
             rebar3: Some(ComponentConfig {
+                default: None,
+                installs: toml::Table::new(),
+                default_build_options: None,
+            }),
+            erlang_ls: Some(ComponentConfig {
                 default: None,
                 installs: toml::Table::new(),
                 default_build_options: None,
