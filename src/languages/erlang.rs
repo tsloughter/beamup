@@ -68,8 +68,8 @@ fn asset_prefix(release: &str, _config: &config::Config) -> Result<String> {
     match (std::env::consts::ARCH, std::env::consts::OS) {
         ("x86", "windows") => Ok(format!("otp_win32_{vsn}.exe")),
         ("x86_64", "windows") => Ok(format!("otp_win64_{vsn}.exe")),
-        ("x86_64", "macos") => Ok(format!("{release}-macos-amd64.tar.gz")),
-        ("aarch64", "macos") => Ok(format!("{release}-macos-arm64.tar.gz")),
+        ("x86_64", "macos") => Ok(format!("otp-x86_64-apple-darwin.tar.gz")),
+        ("aarch64", "macos") => Ok(format!("otp-aarch64-apple-darwin.tar.gz")),
         _ => {
             // TODO: maybe turn this into an Option type and return None
             Ok("".to_string())
