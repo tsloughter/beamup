@@ -169,7 +169,8 @@ pub fn download_asset(
             Ok(file)
         }
         None => {
-            let e: Report = eyre!("Asset not found");
+            let e: Report =
+                eyre!("Release found but no asset on release matching prefix {asset_prefix} found");
 
             Err(e).wrap_err("Github release asset download failed")
         }
