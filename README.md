@@ -87,7 +87,7 @@ The string `latest` can be used instead of a release name to get the release
 marked latest in Github:
 
 ```
-$ beamup build erlang latest
+$ beamup install erlang latest
 ```
 
 ```
