@@ -318,7 +318,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             Ok(())
         }
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
-            debug!("running releases: repo={:?}", language);
+            debug!("running releases: language={:?}", language);
 
             let language_struct = languages::LanguageStruct::new(language, "", "", &None, &config)?;
 

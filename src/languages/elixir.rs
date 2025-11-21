@@ -42,8 +42,11 @@ pub fn bins() -> Vec<(String, languages::Language)> {
 
 fn asset_prefix(_release: &str, _config: &config::Config) -> Result<String> {
     // find dir of active Erlang
-    let otp_major_vsn = config::get_otp_major_vsn()?;
-    Ok(format!("elixir-otp-{otp_major_vsn:}.zip"))
+    match config::get_otp_major_vsn() {
+        Ok(otp_major_vsn) => Ok(format!("elixir-otp-{otp_major_vsn:}.zip")),
+        // see the above TODO for why we return an empty string here
+        Err(_) => Ok("".to_string()),
+    }
 }
 
 pub fn get_binary_github_repo(_release: &str, _config: &config::Config) -> GithubRepo {
