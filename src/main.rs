@@ -17,7 +17,7 @@ use std::process;
 
 mod config;
 
-use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
+use color_eyre::{config::HookBuilder, eyre::eyre, eyre::Report, eyre::Result};
 
 mod cmd;
 mod components;
@@ -168,6 +168,10 @@ struct InstallArgs {
     /// Forces an install disregarding any previously existing ones
     #[arg(short, long)]
     force: bool,
+
+    /// For Erlang only. Select the libc the install wil be built to dynamically link against.
+    #[arg(short, long)]
+    libc: Option<languages::Libc>,
 }
 
 #[derive(Args, Debug)]
@@ -283,7 +287,6 @@ fn print_completions<G: Generator>(gen: G, cmd: &mut Command) {
 }
 
 fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
-
     let cli = Cli::parse();
 
     let (config_file, config) = match &cli.config {
@@ -317,7 +320,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: repo={:?}", language);
 
-            let language_struct = languages::LanguageStruct::new(language, "", "", &config)?;
+            let language_struct = languages::LanguageStruct::new(language, "", "", &None, &config)?;
 
             // TODO: should return Result type
             cmd::releases::run(&language_struct);
@@ -329,10 +332,11 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             id,
             repo,
             force,
+            libc,
         }) => {
             debug!(
-                "running install: {:?} {} {:?} {:?} {:?}",
-                language, release, id, repo, force
+                "running install: {:?} {} {:?} {:?} {:?} {:?}",
+                language, release, id, repo, force, libc
             );
 
             check_if_install_supported(language)?;
@@ -346,7 +350,8 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id
             );
 
-            let language_struct = languages::LanguageStruct::new(language, release, id, &config)?;
+            let language_struct =
+                languages::LanguageStruct::new(language, release, id, libc, &config)?;
 
             let dir = cmd::install::run(&language_struct, release, *force)?;
             cmd::update_links::run(Some(language), &config)?;
@@ -422,8 +427,13 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
 
-            let language_struct =
-                languages::LanguageStruct::new(language, &git_ref.to_string(), &id, &config)?;
+            let language_struct = languages::LanguageStruct::new(
+                language,
+                &git_ref.to_string(),
+                &id,
+                &None,
+                &config,
+            )?;
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
             let dir = cmd::build::run(&language_struct, &git_ref, &id, repo, *force, &config)?;
@@ -503,6 +513,8 @@ fn check_if_install_supported(language: &languages::Language) -> Result<()> {
             ("x86_64", "windows") => return Ok(()),
             ("x86_64", "macos") => return Ok(()),
             ("aarch64", "macos") => return Ok(()),
+            ("x86_64", "linux") => return Ok(()),
+            ("aarch64", "linux") => return Ok(()),
             (os, arch) => {
                 return Err(eyre!(
                     "install command not supported yet for language {language:?} on {os:?} {arch:?}"
@@ -555,6 +567,10 @@ fn main() -> Result<(), Report> {
     let binname = args.next().unwrap();
     let f = Path::new(&binname).file_name().unwrap();
 
+    HookBuilder::default()
+        .display_location_section(false)
+        .install()?;
+
     if f.eq("beamup") || f.eq("beamup.exe") {
         match env::current_exe() {
             Ok(bin_path) => {
@@ -568,7 +584,10 @@ fn main() -> Result<(), Report> {
         }
     } else {
         let (_, config) = config::home_config()?;
-        match languages::bins(&config).iter().find(|&(k, _)| *k == f.to_str().unwrap()) {
+        match languages::bins(&config)
+            .iter()
+            .find(|&(k, _)| *k == f.to_str().unwrap())
+        {
             Some((c, _)) => {
                 let bin = Path::new(c).file_name().unwrap();
                 run::run(bin.to_str().unwrap(), args)

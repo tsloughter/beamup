@@ -76,8 +76,12 @@ BEAMUP_BUILD_OPTIONS="--enable-lock-counter" beamup build erlang -i latest-lock-
 ### Install Languages
 
 The `build` command will compile a release and `install` will fetch a binary
-release. For Erlang at this time only `build` is supported and for Gleam and
-Elixir only `install` is supported`.
+release. At this time Gleam and Elixir only the `install` command is supported`.
+
+Erlang installs are static builds from
+[gleam-community/erlang-linux-builds](https://github.com/gleam-community/erlang-linux-builds).
+To install a build that dynamically links against libc so that NIFs work use the
+argument `--static glibc` or `--static musl`.
 
 The string `latest` can be used instead of a release name to get the release
 marked latest in Github:

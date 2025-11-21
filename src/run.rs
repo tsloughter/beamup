@@ -1,8 +1,9 @@
 use crate::components;
 use crate::config;
+use color_eyre::eyre::eyre;
 use color_eyre::eyre::Result;
 use std::env;
-use std::env::{split_paths, join_paths, Args};
+use std::env::{join_paths, split_paths, Args};
 use std::path::*;
 use std::process::Command;
 
@@ -16,14 +17,23 @@ pub fn run_component(bin: &str, kind: &components::Kind, args: Args) -> Result<(
 
     let path = env::var("PATH")?;
     let mut paths = split_paths(&path).collect::<Vec<_>>();
-    paths.insert(0, Path::new(&dir).join("bin"));
-    let new_path = join_paths(paths)?;
 
-    let mut binding = Command::new(cmd);
-    let binding = binding.env("PATH", &new_path);
-    let cmd = binding.args(args);
+    let install_bin_dir = Path::new(&dir).join("bin");
+    if install_bin_dir.is_dir() {
+        paths.insert(0, Path::new(&dir).join("bin"));
+        let new_path = join_paths(paths)?;
 
-    exec(cmd)
+        let mut binding = Command::new(cmd);
+        let binding = binding.env("PATH", &new_path);
+        let cmd = binding.args(args);
+
+        exec(cmd)
+    } else {
+        return Err(eyre!(
+            "Directory of component expected install does not exist: {:?} ",
+            install_bin_dir
+        ));
+    }
 }
 
 pub fn run(bin: &str, args: Args) -> Result<()> {
@@ -33,17 +43,28 @@ pub fn run(bin: &str, args: Args) -> Result<()> {
 
     debug!("running language command {:?}", cmd);
     debug!("running with args {:?}", args);
-
+    debug!("running language cmd {:?}", dir);
     let path = env::var("PATH")?;
+
     let mut paths = split_paths(&path).collect::<Vec<_>>();
-    paths.insert(0, Path::new(&dir).join("bin"));
-    let new_path = join_paths(paths)?;
 
-    let mut binding = Command::new(cmd);
-    let binding = binding.env("PATH", &new_path);
-    let cmd = binding.args(args);
+    let install_bin_dir = Path::new(&dir).join("bin");
 
-    exec(cmd)
+    if install_bin_dir.is_dir() {
+        paths.insert(0, install_bin_dir);
+        let new_path = join_paths(paths)?;
+
+        let mut binding = Command::new(cmd);
+        let binding = binding.env("PATH", &new_path);
+        let cmd = binding.args(args);
+        debug!("running language cmd {:?}", cmd);
+        exec(cmd)
+    } else {
+        return Err(eyre!(
+            "Directory of expected install does not exist: {:?} ",
+            install_bin_dir
+        ));
+    }
 }
 
 #[cfg(unix)]

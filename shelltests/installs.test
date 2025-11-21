@@ -32,7 +32,7 @@ target/debug/beamup install -f gleam v1.4.1
 
 # test attempt to install elixir without erlang
 target/debug/beamup install elixir latest
->>>2 /Error: No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first./
+>>>2 /No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first./
 >>>=1
 
 # found a bug in update-links and that it wasn't run in tests so adding

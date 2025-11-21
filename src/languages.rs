@@ -10,6 +10,12 @@ pub mod erlang;
 pub mod gleam;
 
 #[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
+pub enum Libc {
+    Glibc,
+    Musl,
+}
+
+#[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
 pub enum Language {
     Elixir,
     Erlang,
@@ -61,10 +67,11 @@ impl LanguageStruct {
         language: &Language,
         release: &str,
         id: &str,
+        libc: &Option<Libc>,
         config: &config::Config,
     ) -> Result<Self> {
         match language {
-            Language::Erlang => erlang::new(release, id, config),
+            Language::Erlang => erlang::new(release, id, &libc, config),
             Language::Elixir => elixir::new(release, id, config),
             Language::Gleam => gleam::new(release, id, config),
         }
