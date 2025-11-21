@@ -523,6 +523,14 @@ fn check_if_install_supported(language: &languages::Language) -> Result<()> {
         }
     }
 
+    if *language == languages::Language::Elixir {
+        // catch when no Erlang is installed and made the default
+        match config::get_otp_major_vsn() {
+            Err(_) => return Err(eyre!("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")),
+            _ => ()
+        }
+    }
+
     Ok(())
 }
 
