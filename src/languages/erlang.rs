@@ -1,17 +1,22 @@
 use crate::config;
 use crate::github::GithubRepo;
 use crate::languages;
-use crate::languages::{Language, LanguageStruct};
+use crate::languages::{Language, LanguageStruct, Libc};
 use color_eyre::eyre::Result;
 
 const LANGUAGE_STRING: &str = "erlang";
 
-pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageStruct> {
+pub fn new(
+    release: &str,
+    id: &str,
+    libc: &Option<Libc>,
+    config: &config::Config,
+) -> Result<LanguageStruct> {
     Ok(LanguageStruct {
         language: Language::Erlang,
         release_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
         extract_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
-        asset_prefix: asset_prefix(release, config)?,
+        asset_prefix: asset_prefix(release, libc, config)?,
         source_repo: get_source_github_repo(release, config),
         binary_repo: get_binary_github_repo(release, config),
         bins: bins(),
@@ -63,13 +68,20 @@ pub fn bins() -> Vec<(String, languages::Language)> {
     ]
 }
 
-fn asset_prefix(release: &str, _config: &config::Config) -> Result<String> {
+fn asset_prefix(release: &str, libc: &Option<Libc>, _config: &config::Config) -> Result<String> {
     let vsn = release.strip_prefix("OTP-").unwrap_or(release);
+    let libc = match libc {
+        None => "",
+        Some(Libc::Glibc) => "-glibc",
+        Some(Libc::Musl) => "-musl",
+    };
     match (std::env::consts::ARCH, std::env::consts::OS) {
         ("x86", "windows") => Ok(format!("otp_win32_{vsn}.exe")),
         ("x86_64", "windows") => Ok(format!("otp_win64_{vsn}.exe")),
         ("x86_64", "macos") => Ok(format!("otp-x86_64-apple-darwin.tar.gz")),
         ("aarch64", "macos") => Ok(format!("otp-aarch64-apple-darwin.tar.gz")),
+        ("aarch64", "linux") => Ok(format!("erlang-{vsn}-arm64{libc}.tar.gz")),
+        ("x86_64", "linux") => Ok(format!("erlang-{vsn}-x64{libc}.tar.gz")),
         _ => {
             // TODO: maybe turn this into an Option type and return None
             Ok("".to_string())
@@ -83,9 +95,13 @@ pub fn get_binary_github_repo(_release: &str, _config: &config::Config) -> Githu
             org: "erlang".to_string(),
             repo: "otp".to_string(),
         },
-        _ => GithubRepo {
+        (_, "macos") => GithubRepo {
             org: "erlef".to_string(),
             repo: "otp_builds".to_string(),
+        },
+        (_, _) => GithubRepo {
+            org: "gleam-community".to_string(),
+            repo: "erlang-linux-builds".to_string(),
         },
     }
 }
