@@ -320,7 +320,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: language={:?}", language);
 
-            let language_struct = languages::LanguageStruct::new(language, "", "", &None, &config)?;
+            let language_struct = languages::LanguageStruct::new(language, "", "", &config)?;
 
             // TODO: should return Result type
             cmd::releases::run(&language_struct);
@@ -350,10 +350,9 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id
             );
 
-            let language_struct =
-                languages::LanguageStruct::new(language, release, id, libc, &config)?;
+            let language_struct = languages::LanguageStruct::new(language, release, id, &config)?;
 
-            let dir = cmd::install::run(&language_struct, release, *force)?;
+            let dir = cmd::install::run(&language_struct, release, libc, *force)?;
             cmd::update_links::run(Some(language), &config)?;
 
             config::add_install(language, id, release, dir, config_file, config)?;
@@ -427,13 +426,8 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
 
-            let language_struct = languages::LanguageStruct::new(
-                language,
-                &git_ref.to_string(),
-                &id,
-                &None,
-                &config,
-            )?;
+            let language_struct =
+                languages::LanguageStruct::new(language, &git_ref.to_string(), &id, &config)?;
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
             let dir = cmd::build::run(&language_struct, &git_ref, &id, repo, *force, &config)?;

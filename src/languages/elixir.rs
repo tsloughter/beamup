@@ -12,7 +12,7 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
         release_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
         extract_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
         // TODO: make this into a closure or method so we only have to run it when we need the asset
-        asset_prefix: asset_prefix(release, config)?,
+        asset_prefix: |release, _| asset_prefix(release),
         source_repo: get_source_github_repo(release, config),
         binary_repo: get_binary_github_repo(release, config),
         bins: bins(),
@@ -40,7 +40,7 @@ pub fn bins() -> Vec<(String, languages::Language)> {
     ]
 }
 
-fn asset_prefix(_release: &str, _config: &config::Config) -> Result<String> {
+fn asset_prefix(_release: &str) -> Result<String> {
     // find dir of active Erlang
     match config::get_otp_major_vsn() {
         Ok(otp_major_vsn) => Ok(format!("elixir-otp-{otp_major_vsn:}.zip")),

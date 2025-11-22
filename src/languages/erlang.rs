@@ -6,17 +6,12 @@ use color_eyre::eyre::Result;
 
 const LANGUAGE_STRING: &str = "erlang";
 
-pub fn new(
-    release: &str,
-    id: &str,
-    libc: &Option<Libc>,
-    config: &config::Config,
-) -> Result<LanguageStruct> {
+pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageStruct> {
     Ok(LanguageStruct {
         language: Language::Erlang,
         release_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
         extract_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
-        asset_prefix: asset_prefix(release, libc, config)?,
+        asset_prefix: |release: &str, libc: &Option<Libc>| asset_prefix(release, libc),
         source_repo: get_source_github_repo(release, config),
         binary_repo: get_binary_github_repo(release, config),
         bins: bins(),
@@ -68,7 +63,7 @@ pub fn bins() -> Vec<(String, languages::Language)> {
     ]
 }
 
-fn asset_prefix(release: &str, libc: &Option<Libc>, _config: &config::Config) -> Result<String> {
+fn asset_prefix(release: &str, libc: &Option<Libc>) -> Result<String> {
     let vsn = release.strip_prefix("OTP-").unwrap_or(release);
     let libc = match libc {
         None => "",

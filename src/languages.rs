@@ -56,7 +56,7 @@ pub struct LanguageStruct {
     pub language: Language,
     pub release_dir: PathBuf,
     pub extract_dir: PathBuf,
-    pub asset_prefix: String,
+    pub asset_prefix: fn(&str, &Option<Libc>) -> Result<String>,
     pub source_repo: GithubRepo,
     pub binary_repo: GithubRepo,
     pub bins: Vec<(String, Language)>,
@@ -67,11 +67,10 @@ impl LanguageStruct {
         language: &Language,
         release: &str,
         id: &str,
-        libc: &Option<Libc>,
         config: &config::Config,
     ) -> Result<Self> {
         match language {
-            Language::Erlang => erlang::new(release, id, &libc, config),
+            Language::Erlang => erlang::new(release, id, config),
             Language::Elixir => elixir::new(release, id, config),
             Language::Gleam => gleam::new(release, id, config),
         }

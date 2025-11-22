@@ -10,8 +10,9 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
     Ok(LanguageStruct {
         language: Language::Gleam,
         release_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?,
-        extract_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?.join("bin"),
-        asset_prefix: asset_prefix(release, config)?,
+        extract_dir: languages::release_dir(LANGUAGE_STRING.to_string(), &id.to_string(), config)?
+            .join("bin"),
+        asset_prefix: |release, _| asset_prefix(release),
         source_repo: get_source_github_repo(release, config),
         binary_repo: get_binary_github_repo(release, config),
         bins: bins(),
@@ -20,9 +21,7 @@ pub fn new(release: &str, id: &str, config: &config::Config) -> Result<LanguageS
 
 #[cfg(unix)]
 pub fn bins() -> Vec<(String, languages::Language)> {
-    vec![
-        ("gleam".to_string(), languages::Language::Gleam),
-    ]
+    vec![("gleam".to_string(), languages::Language::Gleam)]
 }
 
 #[cfg(windows)]
@@ -33,7 +32,7 @@ pub fn bins() -> Vec<(String, languages::Language)> {
     ]
 }
 
-fn asset_prefix(release: &str, _config: &config::Config) -> Result<String> {
+fn asset_prefix(release: &str) -> Result<String> {
     match (std::env::consts::ARCH, std::env::consts::OS) {
         ("x86_64", "linux") => Ok(format!("gleam-{release}-x86_64-unknown-linux-musl.tar.gz")),
         ("aarch64", "linux") => Ok(format!("gleam-{release}-aarch64-unknown-linux-musl.tar.gz")),

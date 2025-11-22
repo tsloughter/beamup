@@ -1,5 +1,6 @@
 use crate::github;
 use crate::languages;
+use crate::languages::Libc;
 use crate::utils;
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
 use flate2::read::GzDecoder;
@@ -15,13 +16,14 @@ use std::process::ExitStatus;
 pub fn run(
     language: &languages::LanguageStruct,
     release: &str,
+    libc: &Option<Libc>,
     force: bool,
 ) -> Result<String, Report> {
     let release_dir = &language.release_dir;
     utils::check_release_dir(release_dir, force)?;
     let github_repo = &language.binary_repo;
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let asset_name = &language.asset_prefix;
+    let asset_name = &(language.asset_prefix)(release, libc)?;
     let file = github::download_asset(asset_name, out_dir.path(), github_repo, release)?;
     debug!("file {:?} downloaded", file);
     let open_file = File::open(&file).wrap_err_with(|| {
