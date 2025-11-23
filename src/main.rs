@@ -320,10 +320,10 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: language={:?}", language);
 
-            let language_struct = languages::LanguageStruct::new(language, "", "", &config)?;
+            let installable = new_installable(language);
 
             // TODO: should return Result type
-            cmd::releases::run(&language_struct);
+            cmd::releases::run(installable);
             Ok(())
         }
         SubCommands::Install(InstallArgs {
@@ -350,9 +350,9 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id
             );
 
-            let language_struct = languages::LanguageStruct::new(language, release, id, &config)?;
+            let installable = new_installable(language);
 
-            let dir = cmd::install::run(&language_struct, release, libc, *force)?;
+            let dir = cmd::install::run(installable, id, release, libc, *force)?;
             cmd::update_links::run(Some(language), &config)?;
 
             config::add_install(language, id, release, dir, config_file, config)?;
@@ -426,11 +426,10 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
 
-            let language_struct =
-                languages::LanguageStruct::new(language, &git_ref.to_string(), &id, &config)?;
+            let installable = new_installable(language);
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
-            let dir = cmd::build::run(&language_struct, &git_ref, &id, repo, *force, &config)?;
+            let dir = cmd::build::run(installable, &git_ref, &id, repo, *force, &config)?;
 
             cmd::update_links::run(Some(language), &config)?;
 
@@ -494,6 +493,14 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         }
 
         _ => Err(eyre!("subcommand not implemented yet")),
+    }
+}
+
+fn new_installable(language: &languages::Language) -> Box<dyn languages::Installable> {
+    match language {
+        languages::Language::Elixir => Box::new(languages::Elixir),
+        languages::Language::Erlang => Box::new(languages::Erlang),
+        languages::Language::Gleam => Box::new(languages::Gleam),
     }
 }
 

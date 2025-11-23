@@ -1,3 +1,4 @@
+use crate::config;
 use crate::github;
 use crate::languages;
 use crate::languages::Libc;
@@ -14,17 +15,20 @@ use zip;
 use std::process::ExitStatus;
 
 pub fn run(
-    language: &languages::LanguageStruct,
+    installable: Box<dyn languages::Installable>,
+    id: &String,
     release: &str,
     libc: &Option<Libc>,
     force: bool,
 ) -> Result<String, Report> {
-    let release_dir = &language.release_dir;
-    utils::check_release_dir(release_dir, force)?;
-    let github_repo = &language.binary_repo;
+    let release_dir = config::language_release_dir(&installable.language(), id, force)?;
+
+    utils::check_release_dir(&release_dir, force)?;
+    let github_repo = installable.binary_repo();
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let asset_name = &(language.asset_prefix)(release, libc)?;
-    let file = github::download_asset(asset_name, out_dir.path(), github_repo, release)?;
+    let asset_name = installable.asset_prefix(release, libc)?;
+    // let asset_name = &(language.asset_prefix)(release, libc)?;
+    let file = github::download_asset(&asset_name, out_dir.path(), &github_repo, release)?;
     debug!("file {:?} downloaded", file);
     let open_file = File::open(&file).wrap_err_with(|| {
         format!(
@@ -33,9 +37,9 @@ pub fn run(
         )
     })?;
 
-    utils::maybe_create_release_dir(release_dir, force)?;
+    utils::maybe_create_release_dir(&release_dir, force)?;
 
-    let extract_dir = &language.extract_dir;
+    let extract_dir = installable.extract_dir(id)?;
 
     // TODO: better ways to check the type than the extension
     let ext = file.extension().map_or("", |e| e.to_str().unwrap_or(""));
