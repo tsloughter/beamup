@@ -1,6 +1,7 @@
 use crate::config;
 use crate::languages::Language;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result, WrapErr};
+use regex::Regex;
 
 #[cfg(unix)]
 pub fn bins() -> Vec<(String, Language)> {
@@ -23,11 +24,11 @@ pub fn bins() -> Vec<(String, Language)> {
     ]
 }
 
-pub fn asset_prefix(_release: &str) -> Result<String> {
+pub fn asset_prefix(_release: &str) -> Result<regex::Regex> {
     // find dir of active Erlang
     match config::get_otp_major_vsn() {
-        Ok(otp_major_vsn) => Ok(format!("elixir-otp-{otp_major_vsn:}.zip")),
-        // see the above TODO for why we return an empty string here
-        Err(_) => Ok("".to_string()),
+        Ok(otp_major_vsn) => Regex::new(format!("elixir-otp-{otp_major_vsn:}.zip").as_str())
+            .wrap_err("Unable to create regex for elixir asset"),
+        Err(_) => Err(eyre!("No Erlang install found.")),
     }
 }

@@ -43,38 +43,31 @@ enum BuildStep<'a> {
     Check(Box<dyn Fn(&CheckContext) -> CheckResult<'a>>),
 }
 
-pub fn run(
-    installable: Box<dyn languages::Installable>,
+pub fn run<T: languages::Installable>(
+    installable: &T,
     git_ref: &GitRef,
     id: &String,
     _repo: &Option<String>,
     force: bool,
     config: &config::Config,
 ) -> Result<String> {
-    debug!(
-        "Building {:?} from source from git ref={git_ref} with id={id}",
-        installable.language()
-    );
+    debug!("Building from source from git ref={git_ref} with id={id}");
 
-    let release_dir = config::language_release_dir(&installable.language(), id, force)?;
+    let release_dir = &installable.release_dir(id)?;
+    config::maybe_create_dir(release_dir, force)?;
 
     //maybe grab configure options from environment
     let key = "BEAMUP_BUILD_OPTIONS";
     let user_build_options = match env::var(key) {
         Ok(options) => options,
-        _ => config::lookup_default_build_options(&installable.language(), config),
+        _ => installable.default_build_options(config),
     };
 
     let github_repo = installable.source_repo();
     let release = git_ref.to_string();
 
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let file = download_release_tarball(
-        &installable.language(),
-        out_dir.path(),
-        &github_repo,
-        &release,
-    )?;
+    let file = download_release_tarball(out_dir.path(), &github_repo, &release)?;
 
     let tar_gz = File::open(&file).wrap_err_with(|| {
         format!(
@@ -96,7 +89,7 @@ pub fn run(
     std::fs::create_dir_all(&release_dir)?;
     build(&release_dir, unpacked_dir, user_build_options.as_str())?;
 
-    Ok(release_dir.into_os_string().into_string().unwrap())
+    Ok(release_dir.clone().into_os_string().into_string().unwrap())
 }
 
 fn build(install_dir: &Path, dir: &Path, user_build_options0: &str) -> Result<()> {

@@ -1,9 +1,8 @@
-use crate::config;
 use crate::github;
 use crate::languages;
 use crate::languages::Libc;
 use crate::utils;
-use color_eyre::{eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
+use color_eyre::eyre::{eyre, Report, Result, WrapErr};
 use flate2::read::GzDecoder;
 use std::fs::File;
 use std::path::PathBuf;
@@ -14,20 +13,19 @@ use zip;
 #[cfg(windows)]
 use std::process::ExitStatus;
 
-pub fn run(
-    installable: Box<dyn languages::Installable>,
+pub fn run<T: languages::Installable>(
+    installable: &T,
     id: &String,
     release: &str,
     libc: &Option<Libc>,
     force: bool,
 ) -> Result<String, Report> {
-    let release_dir = config::language_release_dir(&installable.language(), id, force)?;
+    let release_dir = &installable.release_dir(id)?;
+    utils::maybe_create_release_dir(&release_dir, force)?;
 
-    utils::check_release_dir(&release_dir, force)?;
     let github_repo = installable.binary_repo();
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
     let asset_name = installable.asset_prefix(release, libc)?;
-    // let asset_name = &(language.asset_prefix)(release, libc)?;
     let file = github::download_asset(&asset_name, out_dir.path(), &github_repo, release)?;
     debug!("file {:?} downloaded", file);
     let open_file = File::open(&file).wrap_err_with(|| {
@@ -36,8 +34,6 @@ pub fn run(
             release, &file
         )
     })?;
-
-    utils::maybe_create_release_dir(&release_dir, force)?;
 
     let extract_dir = installable.extract_dir(id)?;
 

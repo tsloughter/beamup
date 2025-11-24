@@ -38,3 +38,11 @@ target/debug/beamup install elixir latest
 # found a bug in update-links and that it wasn't run in tests so adding
 target/debug/beamup update-links
 >>>=0
+
+# test an install of erlang
+target/debug/beamup install erlang latest
+>>>=0
+
+# test an install of elixir
+target/debug/beamup install elixir latest
+>>>=0

@@ -2,7 +2,7 @@ use crate::config;
 use crate::github::GithubRepo;
 use crate::languages;
 use clap::ValueEnum;
-use color_eyre::{eyre::eyre, eyre::Result};
+use color_eyre::eyre::{eyre, Result};
 use std::path::PathBuf;
 use strum::IntoEnumIterator;
 pub mod elixir;
@@ -51,141 +51,80 @@ pub fn bins(_config: &config::Config) -> Vec<(String, Language)> {
     bins
 }
 
-pub struct Elixir;
-pub struct Erlang;
-pub struct Gleam;
-
 pub trait Installable {
-    fn language(&self) -> Language;
-
-    fn bins(&self) -> Vec<(String, Language)>;
+    fn default_build_options(&self, config: &config::Config) -> String;
 
     fn binary_repo(&self) -> GithubRepo;
     fn source_repo(&self) -> GithubRepo;
 
-    fn release_dir(&self, id: &str) -> Result<PathBuf>;
-    fn extract_dir(&self, id: &str) -> Result<PathBuf>;
+    fn release_dir(&self, id: &String) -> Result<PathBuf>;
+    fn extract_dir(&self, id: &String) -> Result<PathBuf>;
 
-    fn asset_prefix(&self, release: &str, libc: &Option<Libc>) -> Result<String>;
+    fn asset_prefix(&self, release: &str, libc: &Option<Libc>) -> Result<regex::Regex>;
 }
 
-impl Installable for Elixir {
-    fn language(&self) -> Language {
-        Language::Elixir
-    }
-
-    fn bins(&self) -> Vec<(String, Language)> {
-        elixir::bins()
+impl Installable for Language {
+    fn default_build_options(&self, config: &config::Config) -> String {
+        config::lookup_default_build_options(self, config)
     }
 
     fn binary_repo(&self) -> GithubRepo {
-        GithubRepo {
-            org: "elixir-lang".to_string(),
-            repo: "elixir".to_string(),
+        match self {
+            Language::Elixir => GithubRepo {
+                org: "elixir-lang".to_string(),
+                repo: "elixir".to_string(),
+            },
+            Language::Erlang => match std::env::consts::OS {
+                "windows" => GithubRepo {
+                    org: "erlang".to_string(),
+                    repo: "otp".to_string(),
+                },
+                "macos" => GithubRepo {
+                    org: "erlef".to_string(),
+                    repo: "otp_builds".to_string(),
+                },
+                _ => GithubRepo {
+                    org: "gleam-community".to_string(),
+                    repo: "erlang-linux-builds".to_string(),
+                },
+            },
+            Language::Gleam => GithubRepo {
+                org: "gleam-lang".to_string(),
+                repo: "gleam".to_string(),
+            },
         }
     }
 
     fn source_repo(&self) -> GithubRepo {
-        GithubRepo {
-            org: "elixir-lang".to_string(),
-            repo: "elixir".to_string(),
-        }
-    }
-
-    fn release_dir(&self, id: &str) -> Result<PathBuf> {
-        languages::release_dir("elixir", id)
-    }
-
-    fn extract_dir(&self, id: &str) -> Result<PathBuf> {
-        languages::release_dir("elixir", id)
-    }
-
-    fn asset_prefix(&self, release: &str, _libc: &Option<Libc>) -> Result<String> {
-        elixir::asset_prefix(release)
-    }
-}
-
-impl Installable for Erlang {
-    fn language(&self) -> Language {
-        Language::Erlang
-    }
-
-    fn bins(&self) -> Vec<(String, Language)> {
-        erlang::bins()
-    }
-
-    fn source_repo(&self) -> GithubRepo {
-        GithubRepo {
-            org: "erlang".to_string(),
-            repo: "otp".to_string(),
-        }
-    }
-
-    fn binary_repo(&self) -> GithubRepo {
-        match std::env::consts::OS {
-            "windows" => GithubRepo {
+        match self {
+            Language::Elixir => GithubRepo {
+                org: "elixir-lang".to_string(),
+                repo: "elixir".to_string(),
+            },
+            Language::Erlang => GithubRepo {
                 org: "erlang".to_string(),
                 repo: "otp".to_string(),
             },
-            "macos" => GithubRepo {
-                org: "erlef".to_string(),
-                repo: "otp_builds".to_string(),
-            },
-            _ => GithubRepo {
-                org: "gleam-community".to_string(),
-                repo: "erlang-linux-builds".to_string(),
+            Language::Gleam => GithubRepo {
+                org: "gleam-lang".to_string(),
+                repo: "gleam".to_string(),
             },
         }
     }
 
-    fn release_dir(&self, id: &str) -> Result<PathBuf> {
-        languages::release_dir("erlang", id)
+    fn release_dir(&self, id: &String) -> Result<PathBuf> {
+        languages::release_dir(self.to_string(), id)
     }
 
-    fn extract_dir(&self, id: &str) -> Result<PathBuf> {
-        languages::release_dir("erlang", id)
+    fn extract_dir(&self, id: &String) -> Result<PathBuf> {
+        languages::release_dir(self.to_string(), id)
     }
 
-    fn asset_prefix(&self, release: &str, libc: &Option<Libc>) -> Result<String> {
-        erlang::asset_prefix(release, libc)
-    }
-}
-
-impl Installable for Gleam {
-    fn language(&self) -> Language {
-        Language::Gleam
-    }
-
-    fn bins(&self) -> Vec<(String, Language)> {
-        gleam::bins()
-    }
-
-    fn binary_repo(&self) -> GithubRepo {
-        self.get_github_repo()
-    }
-
-    fn source_repo(&self) -> GithubRepo {
-        self.get_github_repo()
-    }
-
-    fn release_dir(&self, id: &str) -> Result<PathBuf> {
-        languages::release_dir("gleam", id)
-    }
-
-    fn extract_dir(&self, id: &str) -> Result<PathBuf> {
-        languages::release_dir("gleam", id)
-    }
-
-    fn asset_prefix(&self, release: &str, _libc: &Option<Libc>) -> Result<String> {
-        gleam::asset_prefix(release)
-    }
-}
-
-impl Gleam {
-    fn get_github_repo(&self) -> GithubRepo {
-        GithubRepo {
-            org: "gleam-lang".to_string(),
-            repo: "gleam".to_string(),
+    fn asset_prefix(&self, release: &str, libc: &Option<Libc>) -> Result<regex::Regex> {
+        match self {
+            Language::Elixir => elixir::asset_prefix(release),
+            Language::Erlang => erlang::asset_prefix(release, libc),
+            Language::Gleam => gleam::asset_prefix(release),
         }
     }
 }
@@ -197,7 +136,7 @@ pub fn bin_to_language(bin: String, config: &config::Config) -> Result<languages
     }
 }
 
-pub fn release_dir(language_str: &str, id: &str) -> Result<PathBuf> {
+pub fn release_dir(language_str: String, id: &String) -> Result<PathBuf> {
     let release_dir = config::data_dir()?
         .join("beamup")
         .join(language_str)

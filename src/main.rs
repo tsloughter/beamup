@@ -320,10 +320,8 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: language={:?}", language);
 
-            let installable = new_installable(language);
-
             // TODO: should return Result type
-            cmd::releases::run(installable);
+            cmd::releases::run(language);
             Ok(())
         }
         SubCommands::Install(InstallArgs {
@@ -350,9 +348,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id
             );
 
-            let installable = new_installable(language);
-
-            let dir = cmd::install::run(installable, id, release, libc, *force)?;
+            let dir = cmd::install::run(language, id, release, libc, *force)?;
             cmd::update_links::run(Some(language), &config)?;
 
             config::add_install(language, id, release, dir, config_file, config)?;
@@ -426,10 +422,8 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             };
             let id = id.clone().unwrap_or(git_ref.to_string());
 
-            let installable = new_installable(language);
-
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
-            let dir = cmd::build::run(installable, &git_ref, &id, repo, *force, &config)?;
+            let dir = cmd::build::run(language, &git_ref, &id, repo, *force, &config)?;
 
             cmd::update_links::run(Some(language), &config)?;
 
@@ -493,14 +487,6 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         }
 
         _ => Err(eyre!("subcommand not implemented yet")),
-    }
-}
-
-fn new_installable(language: &languages::Language) -> Box<dyn languages::Installable> {
-    match language {
-        languages::Language::Elixir => Box::new(languages::Elixir),
-        languages::Language::Erlang => Box::new(languages::Erlang),
-        languages::Language::Gleam => Box::new(languages::Gleam),
     }
 }
 

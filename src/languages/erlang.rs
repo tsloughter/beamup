@@ -1,5 +1,6 @@
 use crate::languages::{Language, Libc};
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result, WrapErr};
+use regex::Regex;
 
 #[cfg(unix)]
 pub fn bins() -> Vec<(String, Language)> {
@@ -46,23 +47,30 @@ pub fn bins() -> Vec<(String, Language)> {
     ]
 }
 
-pub fn asset_prefix(release: &str, libc: &Option<Libc>) -> Result<String> {
-    let vsn = release.strip_prefix("OTP-").unwrap_or(release);
+pub fn asset_prefix(_release: &str, libc: &Option<Libc>) -> Result<regex::Regex> {
+    // let vsn = release.strip_prefix("OTP-").unwrap_or(release);
     let libc = match libc {
         None => "",
         Some(Libc::Glibc) => "-glibc",
         Some(Libc::Musl) => "-musl",
     };
     match (std::env::consts::ARCH, std::env::consts::OS) {
-        ("x86", "windows") => Ok(format!("otp_win32_{vsn}.exe")),
-        ("x86_64", "windows") => Ok(format!("otp_win64_{vsn}.exe")),
-        ("x86_64", "macos") => Ok(format!("otp-x86_64-apple-darwin.tar.gz")),
-        ("aarch64", "macos") => Ok(format!("otp-aarch64-apple-darwin.tar.gz")),
-        ("aarch64", "linux") => Ok(format!("erlang-{vsn}-arm64{libc}.tar.gz")),
-        ("x86_64", "linux") => Ok(format!("erlang-{vsn}-x64{libc}.tar.gz")),
-        _ => {
-            // TODO: maybe turn this into an Option type and return None
-            Ok("".to_string())
+        ("x86", "windows") => {
+            Regex::new("otp_win32_.*.exe").wrap_err("Unable to create asset regex")
         }
+        ("x86_64", "windows") => {
+            Regex::new("otp_win64_.*.exe").wrap_err("Unable to create asset regex")
+        }
+        ("x86_64", "macos") => {
+            Regex::new("otp-x86_64-apple-darwin.tar.gz").wrap_err("Unable to create asset regex")
+        }
+        ("aarch64", "macos") => {
+            Regex::new("otp-aarch64-apple-darwin.tar.gz").wrap_err("Unable to create asset regex")
+        }
+        ("aarch64", "linux") => Regex::new(format!("erlang-.*-arm64{libc}.tar.gz").as_str())
+            .wrap_err("Unable to create asset regex"),
+        ("x86_64", "linux") => Regex::new(format!("erlang-.*-x64{libc}.tar.gz").as_str())
+            .wrap_err("Unable to create asset regex"),
+        _ => Err(eyre!("Unknown architecture or OS for installing Erlang")),
     }
 }

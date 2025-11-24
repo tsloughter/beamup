@@ -1,5 +1,6 @@
 use crate::languages::Language;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result, WrapErr};
+use regex::Regex;
 
 #[cfg(unix)]
 pub fn bins() -> Vec<(String, Language)> {
@@ -14,16 +15,18 @@ pub fn bins() -> Vec<(String, Language)> {
     ]
 }
 
-pub fn asset_prefix(release: &str) -> Result<String> {
+pub fn asset_prefix(_release: &str) -> Result<regex::Regex> {
     match (std::env::consts::ARCH, std::env::consts::OS) {
-        ("x86_64", "linux") => Ok(format!("gleam-{release}-x86_64-unknown-linux-musl.tar.gz")),
-        ("aarch64", "linux") => Ok(format!("gleam-{release}-aarch64-unknown-linux-musl.tar.gz")),
-        ("x86_64", "macos") => Ok(format!("gleam-{release}-x86_64-apple-darwin.tar.gz")),
-        ("aarch64", "macos") => Ok(format!("gleam-{release}-aarch64-apple-darwin.tar.gz")),
-        ("x86_64", "windows") => Ok(format!("gleam-{release}-x86_64-pc-windows-msvc.zip")),
-        _ => {
-            // TODO: maybe turn this into an Option type and return None
-            Ok("".to_string())
-        }
+        ("x86_64", "linux") => Regex::new("gleam-.*-x86_64-unknown-linux-musl.tar.gz")
+            .wrap_err("Unable to create asset regex"),
+        ("aarch64", "linux") => Regex::new("gleam-.*-aarch64-unknown-linux-musl.tar.gz")
+            .wrap_err("Unable to create asset regex"),
+        ("x86_64", "macos") => Regex::new("gleam-.*-x86_64-apple-darwin.tar.gz")
+            .wrap_err("Unable to create asset regex"),
+        ("aarch64", "macos") => Regex::new("gleam-.*-aarch64-apple-darwin.tar.gz")
+            .wrap_err("Unable to create asset regex"),
+        ("x86_64", "windows") => Regex::new("gleam-.*-x86_64-pc-windows-msvc.zip")
+            .wrap_err("Unable to create asset regex"),
+        _ => Err(eyre!("Unknown architecture or OS for installing gleam")),
     }
 }

@@ -1,4 +1,3 @@
-use crate::languages::Language;
 use color_eyre::{eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
 use console::{style, Emoji};
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
@@ -42,7 +41,6 @@ pub fn print_releases(GithubRepo { org, repo }: &GithubRepo) {
 }
 
 pub fn download_release_tarball(
-    language: &Language,
     out_dir: &Path,
     GithubRepo { org, repo }: &GithubRepo,
     tag: &String,
@@ -77,7 +75,7 @@ pub fn download_release_tarball(
         Ok(octocrab::models::repos::Release {
             tarball_url: None, ..
         }) => {
-            let e: Report = eyre!("no source tarball found for {language} release {tag}");
+            let e: Report = eyre!("no source tarball found for release {tag}");
             return Err(e);
         }
         Err(err) => {
@@ -108,7 +106,7 @@ pub fn download_release_tarball(
 }
 
 pub fn download_asset(
-    asset_prefix: &String,
+    asset_prefix: &regex::Regex,
     out_dir: &Path,
     GithubRepo { org, repo }: &GithubRepo,
     tag: &str,
@@ -148,7 +146,7 @@ pub fn download_asset(
     debug!("looking for asset {asset_prefix}");
     match assets
         .iter()
-        .find(|&asset| asset.name.starts_with(asset_prefix))
+        .find(|&asset| asset_prefix.is_match(&asset.name))
     {
         Some(asset) => {
             let file = out_dir.join(&asset.name);

@@ -173,6 +173,7 @@ dependencies = [
  "log",
  "num_cpus",
  "octocrab",
+ "regex",
  "serde",
  "shell-words",
  "strum",

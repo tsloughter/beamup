@@ -50,7 +50,7 @@ fn print_language_ids(lc: &LanguageConfig) {
     }
 }
 
-fn get_language_config(language: &languages::Language, config: &Config) -> LanguageConfig {
+pub fn get_language_config(language: &languages::Language, config: &Config) -> LanguageConfig {
     match language {
         languages::Language::Gleam => config.gleam.clone().unwrap_or_default(),
         languages::Language::Erlang => config.erlang.clone().unwrap_or_default(),
@@ -122,8 +122,19 @@ pub fn get_otp_major_vsn() -> Result<String> {
         Ok(dir) => Ok(dir),
         Err(_) => Err(eyre!("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")),
     }?;
-    let releases_dir = Path::new(&dir).join("lib").join("erlang").join("releases");
 
+    let releases_dir = Path::new(&dir).join("lib").join("erlang").join("releases");
+    match check_release_dir(&releases_dir) {
+        otp_major_vsn @ Ok(_) => otp_major_vsn,
+        Err(_) => {
+            // static Erlang builds have a different structure, so check that too
+            let releases_dir = Path::new(&dir).join("releases");
+            check_release_dir(&releases_dir)
+        }
+    }
+}
+
+fn check_release_dir(releases_dir: &Path) -> Result<String> {
     for entry in std::fs::read_dir(&releases_dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -168,7 +179,6 @@ pub fn component_install_to_use(kind: &components::Kind) -> Result<String> {
 
     lookup_component_install_by_id(id, Some(component_config))
 }
-
 
 pub fn install_to_use_by_bin(bin: &str) -> Result<String> {
     let (_, config) = home_config()?;
@@ -426,36 +436,25 @@ pub fn add_component_install(
     Ok(())
 }
 
-pub fn language_release_dir(
-    language: &languages::Language,
-    id: &String,
-    force: bool,
-) -> Result<PathBuf> {
-    let data_dir = data_dir();
-    let release_dir = data_dir
-        .unwrap()
-        .join("beamup")
-        .join(language.to_string())
-        .join(id);
-
+pub fn maybe_create_dir(release_dir: &PathBuf, force: bool) -> Result<()> {
     match release_dir.try_exists() {
         Ok(true) =>
             match force {
                 true => {
                     info!("Force enabled. Deleting existing release directory {release_dir:?}");
-                    fs::remove_dir_all(&release_dir)?
+                    fs::remove_dir_all(release_dir)?
                 },
-                _ => return Err(eyre!("Release directory for id {id:} already exists. Use `-f` to delete {release_dir:?} and recreate instead of giving this error.")),
+                _ => return Err(eyre!("Release directory already exists. Use `-f` to delete {release_dir:?} and recreate instead of giving this error.")),
             }
         Ok(false) => {},
         Err(e) => return Err(eyre!(
-            "Unable to check for existence of release directory for id {id}: {e:?}"
+            "Unable to check for existence of release directory: {e:?}"
         )),
     };
 
-    let _ = std::fs::create_dir_all(&release_dir);
+    let _ = std::fs::create_dir_all(release_dir);
 
-    Ok(release_dir)
+    Ok(())
 }
 
 pub fn bin_dir() -> PathBuf {

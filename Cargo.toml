@@ -19,6 +19,7 @@ eula = false
 clap = {version = "4.5.8", features = ["derive", "color"]}
 clap_complete = "4.5.7"
 log = "0.4.21"
+regex = "1.12.2"
 env_logger = "0.11.3"
 tempdir = "0.3.4"
 tar = "0.4.5"

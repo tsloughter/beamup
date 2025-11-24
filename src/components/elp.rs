@@ -1,6 +1,7 @@
 use crate::components::{release_dir, Component, Kind};
 use crate::github::GithubRepo;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, WrapErr};
+use regex::Regex;
 
 const KIND_STRING: &str = "elp";
 
@@ -18,15 +19,21 @@ fn bins() -> Vec<(String, Kind)> {
     vec![(KIND_STRING.to_string(), Kind::Elp)]
 }
 
-fn asset_prefix(_release: &str) -> Result<String> {
+fn asset_prefix(_release: &str) -> Result<regex::Regex> {
     match (std::env::consts::ARCH, std::env::consts::OS) {
-        ("x86_64", "linux") => Ok("elp-linux-x86_64-unknown-linux-gnu".to_string()),
-        ("aarch64", "linux") => Ok("elp-linux-aarch64-unknown-linux-gnu".to_string()),
-        ("x86_64", "macos") => Ok("elp-macos-x86_64-apple-darwin".to_string()),
-        ("aarch64", "macos") => Ok("elp-macos-aarch64-apple-darwin".to_string()),
+        ("x86_64", "linux") => Regex::new("elp-linux-x86_64-unknown-linux-gnu")
+            .wrap_err("Failed to create asset regex"),
+        ("aarch64", "linux") => Regex::new("elp-linux-aarch64-unknown-linux-gnu")
+            .wrap_err("Failed to create asset regex"),
+        ("x86_64", "macos") => {
+            Regex::new("elp-macos-x86_64-apple-darwin").wrap_err("Failed to create asset regex")
+        }
+        ("aarch64", "macos") => {
+            Regex::new("elp-macos-aarch64-apple-darwin").wrap_err("Failed to create asset regex")
+        }
         _ => {
             // TODO: maybe turn this into an Option type and return None
-            Ok("".to_string())
+            Regex::new("").wrap_err("Failed to create asset regex")
         }
     }
 }

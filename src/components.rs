@@ -42,7 +42,7 @@ pub fn bins() -> Vec<(String, Kind)> {
 pub struct Component {
     pub kind: Kind,
     pub release_dir: PathBuf,
-    pub asset_prefix: String,
+    pub asset_prefix: regex::Regex,
     pub repo: GithubRepo,
     pub bins: Vec<(String, Kind)>,
 }

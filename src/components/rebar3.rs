@@ -1,6 +1,7 @@
 use crate::components::{release_dir, Component, Kind};
 use crate::github::GithubRepo;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, WrapErr};
+use regex::Regex;
 
 const KIND_STRING: &str = "rebar3";
 
@@ -14,8 +15,8 @@ pub fn new_component(release: &str) -> Result<Component> {
     })
 }
 
-fn asset_prefix(_release: &str) -> Result<String> {
-    Ok(KIND_STRING.to_string())
+fn asset_prefix(_release: &str) -> Result<regex::Regex> {
+    Regex::new(KIND_STRING).wrap_err("Unable to create asset regex")
 }
 
 fn get_github_repo() -> GithubRepo {
