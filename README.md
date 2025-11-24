@@ -15,14 +15,14 @@ component support to come in the future.
 An install script is provided for both Linux/Mac:
 
 ```
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/tsloughter/beamup/releases/download/v0.7.2/beamup-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/tsloughter/beamup/releases/download/v0.8.0/beamup-installer.sh | sh
 ```
 
 And Windows Powershell:
 
 ```
 powershell -c "irm
-https://github.com/tsloughter/beamup/releases/download/v0.7.2/beamup-installer.ps1
+https://github.com/tsloughter/beamup/releases/download/v0.8.0/beamup-installer.ps1
 | iex"
 ```
 
