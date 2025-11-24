@@ -25,7 +25,7 @@ pub fn run<T: languages::Installable>(
 
     let github_repo = installable.binary_repo();
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let asset_name = installable.asset_prefix(release, libc)?;
+    let asset_name = installable.asset_prefix(libc)?;
     let file = github::download_asset(&asset_name, out_dir.path(), &github_repo, release)?;
     debug!("file {:?} downloaded", file);
     let open_file = File::open(&file).wrap_err_with(|| {

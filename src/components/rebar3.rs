@@ -9,13 +9,13 @@ pub fn new_component(release: &str) -> Result<Component> {
     Ok(Component {
         kind: Kind::Rebar3,
         release_dir: release_dir(KIND_STRING.to_string(), &release.to_string())?,
-        asset_prefix: asset_prefix(release)?,
+        asset_prefix: asset_prefix()?,
         repo: get_github_repo(),
         bins: bins(),
     })
 }
 
-fn asset_prefix(_release: &str) -> Result<regex::Regex> {
+fn asset_prefix() -> Result<regex::Regex> {
     Regex::new(KIND_STRING).wrap_err("Unable to create asset regex")
 }
 

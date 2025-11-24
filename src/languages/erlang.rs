@@ -47,8 +47,7 @@ pub fn bins() -> Vec<(String, Language)> {
     ]
 }
 
-pub fn asset_prefix(_release: &str, libc: &Option<Libc>) -> Result<regex::Regex> {
-    // let vsn = release.strip_prefix("OTP-").unwrap_or(release);
+pub fn asset_prefix(libc: &Option<Libc>) -> Result<regex::Regex> {
     let libc = match libc {
         None => "",
         Some(Libc::Glibc) => "-glibc",

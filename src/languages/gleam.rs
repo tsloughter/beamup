@@ -15,7 +15,7 @@ pub fn bins() -> Vec<(String, Language)> {
     ]
 }
 
-pub fn asset_prefix(_release: &str) -> Result<regex::Regex> {
+pub fn asset_prefix() -> Result<regex::Regex> {
     match (std::env::consts::ARCH, std::env::consts::OS) {
         ("x86_64", "linux") => Regex::new("gleam-.*-x86_64-unknown-linux-musl.tar.gz")
             .wrap_err("Unable to create asset regex"),

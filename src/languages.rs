@@ -60,7 +60,7 @@ pub trait Installable {
     fn release_dir(&self, id: &String) -> Result<PathBuf>;
     fn extract_dir(&self, id: &String) -> Result<PathBuf>;
 
-    fn asset_prefix(&self, release: &str, libc: &Option<Libc>) -> Result<regex::Regex>;
+    fn asset_prefix(&self, libc: &Option<Libc>) -> Result<regex::Regex>;
 }
 
 impl Installable for Language {
@@ -120,11 +120,11 @@ impl Installable for Language {
         languages::release_dir(self.to_string(), id)
     }
 
-    fn asset_prefix(&self, release: &str, libc: &Option<Libc>) -> Result<regex::Regex> {
+    fn asset_prefix(&self, libc: &Option<Libc>) -> Result<regex::Regex> {
         match self {
-            Language::Elixir => elixir::asset_prefix(release),
-            Language::Erlang => erlang::asset_prefix(release, libc),
-            Language::Gleam => gleam::asset_prefix(release),
+            Language::Elixir => elixir::asset_prefix(),
+            Language::Erlang => erlang::asset_prefix(libc),
+            Language::Gleam => gleam::asset_prefix(),
         }
     }
 }

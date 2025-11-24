@@ -24,7 +24,7 @@ pub fn bins() -> Vec<(String, Language)> {
     ]
 }
 
-pub fn asset_prefix(_release: &str) -> Result<regex::Regex> {
+pub fn asset_prefix() -> Result<regex::Regex> {
     // find dir of active Erlang
     match config::get_otp_major_vsn() {
         Ok(otp_major_vsn) => Regex::new(format!("elixir-otp-{otp_major_vsn:}.zip").as_str())
