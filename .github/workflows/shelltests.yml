@@ -32,8 +32,12 @@ jobs:
     - name: Run Shelltests
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: just shelltests
-
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Run MacOS ShellTests
       if: ${{ matrix.os == 'macos-latest' }}
       run: |
         just shelltests-macos
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
