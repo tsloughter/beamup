@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>beamup Changelog</title><link>http://127.0.0.1:7979/beamup/changelog</link><description>Changelog information for beamup</description><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><atom:link href="http://127.0.0.1:7979/beamup/changelog.rss" rel="self"/><item><title>0.10.0 - 2025-12-30</title><link>http://127.0.0.1:7979/beamup/changelog/v0.10.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.10.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Add instructions to add link directory to PATH</li>
+</ul>
+]]></content:encoded></item><item><title>0.9.0 - 2025-12-30</title><link>http://127.0.0.1:7979/beamup/changelog/v0.9.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.9.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Install elp version built for currently active OTP version</li>
+<li>Add GITHUB_TOKEN to shelltest runs so they don't get ratelimited</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>In elp for now just ignore if no otp version found</li>
+<li>Extract gleam to bin subdir</li>
+</ul>
+]]></content:encoded></item><item><title>0.8.0 - 2025-11-24</title><link>http://127.0.0.1:7979/beamup/changelog/v0.8.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.8.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Support latest tag for gleam and erlang static builds</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>Only call asset_prefix in install where it is needed</li>
+</ul>
+]]></content:encoded></item><item><title>0.7.2 - 2025-11-21</title><link>http://127.0.0.1:7979/beamup/changelog/v0.7.2</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.7.2</guid><content:encoded><![CDATA[<h3>Fixed</h3>
+<ul>
+<li>Check for an installed erlang before trying to install elixir</li>
+</ul>
+]]></content:encoded></item><item><title>0.7.1 - 2025-11-21</title><link>http://127.0.0.1:7979/beamup/changelog/v0.7.1</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.7.1</guid><content:encoded><![CDATA[<h3>Fixed</h3>
+<ul>
+<li>Don't crash when running releases command on elixir</li>
+</ul>
+]]></content:encoded></item><item><title>0.7.0 - 2025-11-21</title><link>http://127.0.0.1:7979/beamup/changelog/v0.7.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.7.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Install static binary builds of erlang on linux</li>
+</ul>
+]]></content:encoded></item><item><title>0.6.0 - 2024-09-26</title><link>http://127.0.0.1:7979/beamup/changelog/v0.6.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.6.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Support binary install of erlang on macos</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>Search with .exe and without in windows for bins</li>
+</ul>
+]]></content:encoded></item><item><title>0.5.0 - 2024-09-14</title><link>http://127.0.0.1:7979/beamup/changelog/v0.5.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.5.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Components support for installing elp and rebar3</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>Allow -f/--force without passing the true/false value</li>
+</ul>
+]]></content:encoded></item><item><title>0.4.7 - 2024-09-02</title><link>http://127.0.0.1:7979/beamup/changelog/v0.4.7</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.4.7</guid><content:encoded><![CDATA[<h3>Fixed</h3>
+<ul>
+<li>Make finding active otp major vsn less hacky</li>
+</ul>
+]]></content:encoded></item><item><title>0.4.6 - 2024-09-02</title><link>http://127.0.0.1:7979/beamup/changelog/v0.4.6</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.4.6</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Add musl on top of gnu builds to aarch64 linux releases</li>
+</ul>
+]]></content:encoded></item><item><title>0.4.5 - 2024-09-02</title><link>http://127.0.0.1:7979/beamup/changelog/v0.4.5</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.4.5</guid><content:encoded><![CDATA[<h3>Fixed</h3>
+<ul>
+<li>Don't append bin/ path to gleam install dir</li>
+</ul>
+]]></content:encoded></item><item><title>0.4.4 - 2024-09-02</title><link>http://127.0.0.1:7979/beamup/changelog/v0.4.4</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.4.4</guid><content:encoded><![CDATA[<h3>Fixed</h3>
+<ul>
+<li>Languages command to print all languages</li>
+</ul>
+]]></content:encoded></item><item><title>0.4.3 - 2024-08-31</title><link>http://127.0.0.1:7979/beamup/changelog/v0.4.3</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.4.3</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Better error message when installing Elixir without Erlang</li>
+</ul>
+]]></content:encoded></item><item><title>0.4.2 - 2024-08-31</title><link>http://127.0.0.1:7979/beamup/changelog/v0.4.2</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.4.2</guid><content:encoded><![CDATA[<h3>Fixed</h3>
+<ul>
+<li>Do not attempt to install docs for now</li>
+</ul>
+]]></content:encoded></item><item><title>0.4.1 - 2024-08-29</title><link>http://127.0.0.1:7979/beamup/changelog/v0.4.1</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.4.1</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Add Elixir ids to the list output</li>
+</ul>
+]]></content:encoded></item><item><title>0.4.0 - 2024-08-28</title><link>http://127.0.0.1:7979/beamup/changelog/v0.4.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.4.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Add support for the 'list' command</li>
+<li>Support installing Elixir on Windows/Linux/Mac</li>
+<li>Add OTP vsn Elixir was built for in install metadata</li>
+<li>Include release/git_ref in install metadata</li>
+</ul>
+<h3>Removed</h3>
+<ul>
+<li>Remove link checker in github pages site</li>
+</ul>
+]]></content:encoded></item><item><title>0.3.0 - 2024-08-26</title><link>http://127.0.0.1:7979/beamup/changelog/v0.3.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.3.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Windows gleam install and run support</li>
+<li>Windows Erlang install and run support</li>
+<li>Add support for forcing the overwrite of an existing install</li>
+</ul>
+<h3>Fixed</h3>
+<ul>
+<li>Error if user tries to run Erlang build on windows</li>
+<li>Error out if update_links fails</li>
+</ul>
+]]></content:encoded></item><item><title>0.2.0 - 2024-08-19</title><link>http://127.0.0.1:7979/beamup/changelog/v0.2.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.2.0</guid><content:encoded><![CDATA[<h3>Added</h3>
+<ul>
+<li>Support default build options in config and env var</li>
+</ul>
+]]></content:encoded></item><item><title>v0.1.2</title><link>http://127.0.0.1:7979/beamup/changelog/v0.1.2</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.1.2</guid><content:encoded><![CDATA[]]></content:encoded></item><item><title>v0.1.1</title><link>http://127.0.0.1:7979/beamup/changelog/v0.1.1</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.1.1</guid><content:encoded><![CDATA[]]></content:encoded></item><item><title>v0.1.0</title><link>http://127.0.0.1:7979/beamup/changelog/v0.1.0</link><category domain="https://github.com/tsloughter/beamup">beamup Changelog</category><guid>http://127.0.0.1:7979/beamup/changelog/v0.1.0</guid><content:encoded><![CDATA[
+]]></content:encoded></item></channel></rss>
