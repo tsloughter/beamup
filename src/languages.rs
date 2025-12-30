@@ -117,7 +117,13 @@ impl Installable for Language {
     }
 
     fn extract_dir(&self, id: &String) -> Result<PathBuf> {
-        languages::release_dir(self.to_string(), id)
+        match self {
+            Language::Gleam => {
+                let release_dir = languages::release_dir(self.to_string(), id)?;
+                Ok(release_dir.join("bin"))
+            }
+            _ => languages::release_dir(self.to_string(), id),
+        }
     }
 
     fn asset_prefix(&self, libc: &Option<Libc>) -> Result<regex::Regex> {
