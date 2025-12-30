@@ -7,10 +7,53 @@ use color_eyre::eyre::Result;
 use std::path::PathBuf;
 use strum::IntoEnumIterator;
 
+use crate::installable::{Installable, Libc};
+
 #[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
 pub enum Kind {
     Elp,
     Rebar3,
+}
+
+impl Kind {
+    pub fn bins(&self) -> Vec<(String, Kind)> {
+        match self {
+            Kind::Elp => elp::bins(),
+            Kind::Rebar3 => rebar3::bins(),
+        }
+    }
+}
+
+impl Installable for Kind {
+    fn default_build_options(&self, _config: &config::Config) -> String {
+        "".to_string()
+    }
+
+    fn binary_repo(&self) -> GithubRepo {
+        match self {
+            Kind::Elp => elp::get_github_repo(),
+            Kind::Rebar3 => rebar3::get_github_repo(),
+        }
+    }
+
+    fn source_repo(&self) -> GithubRepo {
+        self.binary_repo()
+    }
+
+    fn release_dir(&self, id: &String) -> Result<PathBuf> {
+        release_dir(self.to_string(), id)
+    }
+
+    fn extract_dir(&self, id: &String) -> Result<PathBuf> {
+        self.release_dir(id)
+    }
+
+    fn asset_prefix(&self, _libc: &Option<Libc>) -> Result<regex::Regex> {
+        match self {
+            Kind::Elp => elp::asset_prefix(),
+            Kind::Rebar3 => rebar3::asset_prefix(),
+        }
+    }
 }
 
 impl std::fmt::Display for Kind {
@@ -29,31 +72,7 @@ pub fn print() {
 }
 
 pub fn bins() -> Vec<(String, Kind)> {
-    Kind::iter()
-        .flat_map(|kind| {
-            // TODO: Fix me, needs to be able to fail properly if data_local_dir fails
-            let c = Component::new(kind.clone(), "").unwrap();
-
-            c.bins
-        })
-        .collect()
-}
-
-pub struct Component {
-    pub kind: Kind,
-    pub release_dir: PathBuf,
-    pub asset_prefix: regex::Regex,
-    pub repo: GithubRepo,
-    pub bins: Vec<(String, Kind)>,
-}
-
-impl Component {
-    pub fn new(kind: Kind, release: &str) -> Result<Self> {
-        match kind {
-            Kind::Elp => elp::new_component(release),
-            Kind::Rebar3 => rebar3::new_component(release),
-        }
-    }
+    Kind::iter().flat_map(|kind| kind.bins()).collect()
 }
 
 pub fn release_dir(kind_str: String, id: &String) -> Result<PathBuf> {

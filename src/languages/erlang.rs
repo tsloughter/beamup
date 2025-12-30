@@ -1,4 +1,5 @@
-use crate::languages::{Language, Libc};
+use crate::installable::Libc;
+use crate::languages::Language;
 use color_eyre::eyre::{eyre, Result, WrapErr};
 use regex::Regex;
 

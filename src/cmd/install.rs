@@ -1,6 +1,5 @@
 use crate::github;
-use crate::languages;
-use crate::languages::Libc;
+use crate::installable::{Installable, Libc};
 use crate::utils;
 use color_eyre::eyre::{eyre, Report, Result, WrapErr};
 use flate2::read::GzDecoder;
@@ -13,7 +12,7 @@ use zip;
 #[cfg(windows)]
 use std::process::ExitStatus;
 
-pub fn run<T: languages::Installable>(
+pub fn run<T: Installable>(
     installable: &T,
     id: &String,
     release: &str,
