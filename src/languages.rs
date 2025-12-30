@@ -9,11 +9,7 @@ pub mod elixir;
 pub mod erlang;
 pub mod gleam;
 
-#[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
-pub enum Libc {
-    Glibc,
-    Musl,
-}
+use crate::installable::{Installable, Libc};
 
 #[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
 pub enum Language {
@@ -49,18 +45,6 @@ pub fn bins(_config: &config::Config) -> Vec<(String, Language)> {
     bins.append(&mut gleam_bins);
 
     bins
-}
-
-pub trait Installable {
-    fn default_build_options(&self, config: &config::Config) -> String;
-
-    fn binary_repo(&self) -> GithubRepo;
-    fn source_repo(&self) -> GithubRepo;
-
-    fn release_dir(&self, id: &String) -> Result<PathBuf>;
-    fn extract_dir(&self, id: &String) -> Result<PathBuf>;
-
-    fn asset_prefix(&self, libc: &Option<Libc>) -> Result<regex::Regex>;
 }
 
 impl Installable for Language {

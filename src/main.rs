@@ -23,6 +23,7 @@ mod cmd;
 mod components;
 mod git;
 mod github;
+mod installable;
 mod languages;
 mod links;
 mod run;
@@ -171,7 +172,7 @@ struct InstallArgs {
 
     /// For Erlang only. Select the libc the install wil be built to dynamically link against.
     #[arg(short, long)]
-    libc: Option<languages::Libc>,
+    libc: Option<crate::installable::Libc>,
 }
 
 #[derive(Args, Debug)]
@@ -461,14 +462,13 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             // the release to install
             let id = id.as_ref().unwrap_or(release);
 
-            let c = components::Component::new(component.clone(), release)?;
-
-            let release_dir = cmd::component_install::run(&c, release, *force)?;
+            let release_dir = cmd::component_install::run(component, release, *force)?;
 
             let bin_dir = config::bin_dir();
             let _ = std::fs::create_dir_all(&bin_dir);
 
-            let (bins, _): (Vec<String>, Vec<components::Kind>) = c.bins.into_iter().unzip();
+            let (bins, _): (Vec<String>, Vec<components::Kind>) =
+                component.bins().into_iter().unzip();
 
             links::update(bins.into_iter(), &bin_dir)?;
 
