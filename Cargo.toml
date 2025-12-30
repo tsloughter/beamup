@@ -1,6 +1,6 @@
 [package]
 name = "beamup"
-version = "0.9.0"
+version = "0.10.0"
 description = " Install and control active BEAM languages and components"
 edition = "2021"
 authors = ["Tristan Sloughter <tristan@sloughter.dev>"]
