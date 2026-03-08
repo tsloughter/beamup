@@ -30,8 +30,8 @@ pub fn run(maybe_language: Option<&languages::Language>, config: &config::Config
 fn print_instructions(bin_dir: std::path::PathBuf) -> Result<()> {
     let dir_string = bin_dir.into_os_string().into_string().unwrap();
     info!(
-        "\nEnsure PATH contains directory {}\n\nFor example add to your shell rc file:\n\n    export PATH={}:$PATH\n",
-        dir_string, dir_string
+        "\nEnsure PATH contains directory {}\n\nAdd the shell-specific command below to your shell config file:\n\n  bash (~/.bashrc):\n    export PATH={}:$PATH\n\n  zsh (~/.zshrc):\n    export PATH={}:$PATH\n\n  fish (~/.config/fish/config.fish):\n    fish_add_path {}\n",
+        dir_string, dir_string, dir_string, dir_string
     );
 
     Ok(())
