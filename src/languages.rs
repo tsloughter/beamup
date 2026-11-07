@@ -9,7 +9,7 @@ pub mod elixir;
 pub mod erlang;
 pub mod gleam;
 
-use crate::installable::{Installable, Libc};
+use crate::installable::{Buildable, Installable, Libc};
 
 #[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
 pub enum Language {
@@ -47,11 +47,13 @@ pub fn bins(_config: &config::Config) -> Vec<(String, Language)> {
     bins
 }
 
-impl Installable for Language {
+impl Buildable for Language {
     fn default_build_options(&self, config: &config::Config) -> String {
         config::lookup_default_build_options(self, config)
     }
+}
 
+impl Installable for Language {
     fn binary_repo(&self) -> GithubRepo {
         match self {
             Language::Elixir => GithubRepo {

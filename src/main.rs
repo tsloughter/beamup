@@ -462,7 +462,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             // the release to install
             let id = id.as_ref().unwrap_or(release);
 
-            let release_dir = cmd::component_install::run(component, release, *force)?;
+            let release_dir = cmd::install::run(component, id, release, &None, *force)?;
 
             let bin_dir = config::bin_dir();
             let _ = std::fs::create_dir_all(&bin_dir);

@@ -11,13 +11,17 @@ pub enum Libc {
 }
 
 pub trait Installable {
-    fn default_build_options(&self, config: &config::Config) -> String;
-
     fn binary_repo(&self) -> GithubRepo;
-    fn source_repo(&self) -> GithubRepo;
+    fn source_repo(&self) -> GithubRepo {
+        self.binary_repo()
+    }
 
     fn release_dir(&self, id: &String) -> Result<PathBuf>;
     fn extract_dir(&self, id: &String) -> Result<PathBuf>;
 
     fn asset_prefix(&self, libc: &Option<Libc>) -> Result<regex::Regex>;
+}
+
+pub trait Buildable: Installable {
+    fn default_build_options(&self, config: &config::Config) -> String;
 }

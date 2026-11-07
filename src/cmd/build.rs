@@ -1,7 +1,7 @@
 use crate::config;
 use crate::git::GitRef;
 use crate::github::download_release_tarball;
-use crate::installable::Installable;
+use crate::installable::Buildable;
 use color_eyre::{eyre::Result, eyre::WrapErr};
 use console::Emoji;
 use flate2::read::GzDecoder;
@@ -43,7 +43,7 @@ enum BuildStep<'a> {
     Check(Box<dyn Fn(&CheckContext) -> CheckResult<'a>>),
 }
 
-pub fn run<T: Installable>(
+pub fn run<T: Buildable>(
     installable: &T,
     git_ref: &GitRef,
     id: &String,
