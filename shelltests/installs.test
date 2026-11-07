@@ -16,6 +16,10 @@ Erlang:
 
 Gleam:
 v1.4.1
+
+ELP:
+
+rebar3:
 >>>=0
 
 # test link was created in the right place

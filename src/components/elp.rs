@@ -10,8 +10,8 @@ pub fn bins() -> Vec<(String, Kind)> {
     vec![(KIND_STRING.to_string(), Kind::Elp)]
 }
 
-pub fn asset_prefix() -> Result<regex::Regex> {
-    let otp_major_vsn = match config::get_otp_major_vsn() {
+pub fn asset_prefix(config: &config::Config) -> Result<regex::Regex> {
+    let otp_major_vsn = match config::get_otp_major_vsn(config) {
         Ok(otp_major_vsn) => otp_major_vsn,
         Err(_) => "".to_string(),
     };

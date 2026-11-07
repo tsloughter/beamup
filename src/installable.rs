@@ -2,7 +2,7 @@ use crate::config;
 use crate::github::GithubRepo;
 use clap::ValueEnum;
 use color_eyre::eyre::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(ValueEnum, Debug, Clone, PartialEq, EnumIter)]
 pub enum Libc {
@@ -10,16 +10,18 @@ pub enum Libc {
     Musl,
 }
 
-pub trait Installable {
+pub trait Installable: std::fmt::Display {
     fn binary_repo(&self) -> GithubRepo;
     fn source_repo(&self) -> GithubRepo {
         self.binary_repo()
     }
 
-    fn release_dir(&self, id: &String) -> Result<PathBuf>;
-    fn extract_dir(&self, id: &String) -> Result<PathBuf>;
+    fn release_dir(&self, id: &str, config: &config::Config) -> Result<PathBuf> {
+        crate::installs::path(config, &self.to_string(), id)
+    }
+    fn extract_dir(&self, release_dir: &Path) -> PathBuf;
 
-    fn asset_prefix(&self, libc: &Option<Libc>) -> Result<regex::Regex>;
+    fn asset_prefix(&self, libc: &Option<Libc>, config: &config::Config) -> Result<regex::Regex>;
 }
 
 pub trait Buildable: Installable {
