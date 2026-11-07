@@ -161,10 +161,19 @@ mod tests {
         root: &Path,
         force: bool,
     ) -> Result<String> {
-        let id = "custom-id".to_owned();
-        let release_dir = installable.release_dir(&id)?;
-        let extract_dir = installable.extract_dir(&id)?;
-        let local_release_dir = root.join(&id);
+        install_fixture_with_id(installable, file, root, &"custom-id".to_owned(), force)
+    }
+
+    fn install_fixture_with_id(
+        installable: &impl Installable,
+        file: &Path,
+        root: &Path,
+        id: &String,
+        force: bool,
+    ) -> Result<String> {
+        let release_dir = installable.release_dir(id)?;
+        let extract_dir = installable.extract_dir(id)?;
+        let local_release_dir = root.join(release_dir.file_name().unwrap());
         let local_extract_dir = local_release_dir.join(extract_dir.strip_prefix(release_dir)?);
         install_asset(file, &local_release_dir, &local_extract_dir, force)
     }
@@ -214,6 +223,55 @@ mod tests {
         let installed = install_fixture(&Kind::Rebar3, &file, dir.path(), false)?;
 
         assert_executable(&Path::new(&installed).join("bin/rebar3"))?;
+        Ok(())
+    }
+
+    #[test]
+    fn same_component_release_can_be_installed_under_multiple_ids() -> Result<()> {
+        for kind in [Kind::Elp, Kind::Rebar3] {
+            let dir = TempDir::new("beamup-test")?;
+            let name = kind.to_string();
+            let file = match kind {
+                Kind::Elp => zip_asset(dir.path(), &name)?,
+                Kind::Rebar3 => {
+                    let file = dir.path().join(&name);
+                    fs::write(&file, CONTENTS)?;
+                    file
+                }
+            };
+            let release = "same-release".to_owned();
+            let mut config = crate::config::ComponentConfig::default();
+
+            for id in ["first", "second"] {
+                let id = id.to_owned();
+                let installed = install_fixture_with_id(&kind, &file, dir.path(), &id, false)?;
+                assert_eq!(Path::new(&installed), dir.path().join(&id));
+                assert_executable(&Path::new(&installed).join("bin").join(&name))?;
+                config = crate::config::update_component_config(
+                    &kind, &id, &release, installed, config,
+                )?;
+            }
+
+            let config = toml::Value::try_from(config)?;
+            for id in ["first", "second"] {
+                assert_eq!(
+                    config["installs"][id]["release"].as_str(),
+                    Some(release.as_str())
+                );
+                assert_eq!(
+                    config["installs"][id]["dir"].as_str(),
+                    dir.path().join(id).to_str()
+                );
+            }
+            assert!(!dir.path().join(&release).exists());
+
+            // Forcing one ID must not remove or modify the other installation.
+            let second_marker = dir.path().join("second/keep");
+            fs::write(&second_marker, b"keep")?;
+            install_fixture_with_id(&kind, &file, dir.path(), &"first".to_owned(), true)?;
+            assert_eq!(fs::read(second_marker)?, b"keep");
+            assert_executable(&dir.path().join("second/bin").join(&name))?;
+        }
         Ok(())
     }
 
