@@ -17,7 +17,7 @@ use std::process;
 
 mod config;
 
-use color_eyre::{config::HookBuilder, eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
+use color_eyre::{config::HookBuilder, eyre::eyre, eyre::Report, eyre::Result};
 
 mod cmd;
 mod components;
@@ -337,7 +337,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id, repo, force, libc
             );
 
-            check_if_install_supported(language, &config)?;
+            check_if_install_supported(language)?;
 
             // if no user supplied id then use the name of
             // the release to install
@@ -477,10 +477,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
 // only Elixir and Gleam support install on any platform
 // Erlang only on Windows
-fn check_if_install_supported(
-    language: &languages::Language,
-    config: &config::Config,
-) -> Result<()> {
+fn check_if_install_supported(language: &languages::Language) -> Result<()> {
     if *language == languages::Language::Erlang {
         // install command for Erlang only supports Windows on x86 or x86_64 at this time
         match (std::env::consts::ARCH, std::env::consts::OS) {
@@ -496,11 +493,6 @@ fn check_if_install_supported(
                 ))
             }
         }
-    }
-
-    if *language == languages::Language::Elixir {
-        // catch when no Erlang is installed and made the default
-        languages::elixir::otp_major_vsn(config).wrap_err("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")?;
     }
 
     Ok(())

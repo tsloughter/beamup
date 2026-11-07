@@ -38,7 +38,12 @@ fn run_install(dir: &Path, bin: &str, args: Args) -> Result<()> {
     let path = env::var_os("PATH").unwrap_or_default();
     let mut paths = split_paths(&path).collect::<Vec<_>>();
     paths.insert(0, bin_dir);
-    let mut command = Command::new(&executable);
+    // Start the executable by name through the prepended PATH, not by its full
+    // path. Erlang's erlc, escript and similar wrappers derive the `erl` to run
+    // from their own argv[0] and split that value on whitespace, so an absolute
+    // argv[0] under a directory like "~/Library/Application Support" fails.
+    // A bare name makes them fall back to `erl` on PATH, which is this install's.
+    let mut command = Command::new(bin);
     command.env("PATH", join_paths(paths)?).args(args);
     debug!("Running {:?}", command);
     exec(&mut command)

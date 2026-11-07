@@ -3,6 +3,7 @@ pub mod elp;
 pub mod rebar3;
 use crate::config;
 use crate::github::GithubRepo;
+use crate::installs::Metadata;
 use color_eyre::eyre::Result;
 use std::path::{Path, PathBuf};
 use strum::IntoEnumIterator;
@@ -16,6 +17,14 @@ pub enum Kind {
 }
 
 impl Kind {
+    /// Heading used when listing installs.
+    pub fn label(&self) -> &'static str {
+        match self {
+            Kind::Elp => "ELP",
+            Kind::Rebar3 => "rebar3",
+        }
+    }
+
     pub fn bins(&self) -> Vec<(String, Kind)> {
         match self {
             Kind::Elp => elp::bins(),
@@ -36,9 +45,21 @@ impl Installable for Kind {
         release_dir.join("bin")
     }
 
-    fn asset_prefix(&self, _libc: &Option<Libc>, config: &config::Config) -> Result<regex::Regex> {
+    fn install_metadata(&self, release: &str, config: &config::Config) -> Result<Metadata> {
+        Ok(Metadata {
+            release: release.to_owned(),
+            otp_vsn: match self {
+                // ELP assets are built per OTP major version; fall back to any release.
+                Kind::Elp => config::get_otp_major_vsn(config).ok(),
+                Kind::Rebar3 => None,
+            },
+            ..Metadata::default()
+        })
+    }
+
+    fn asset_prefix(&self, _libc: &Option<Libc>, metadata: &Metadata) -> Result<regex::Regex> {
         match self {
-            Kind::Elp => elp::asset_prefix(config),
+            Kind::Elp => elp::asset_prefix(metadata.otp_vsn.as_deref().unwrap_or("")),
             Kind::Rebar3 => rebar3::asset_prefix(),
         }
     }

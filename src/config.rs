@@ -37,7 +37,7 @@ impl Config {
             languages::Language::Erlang => &mut self.erlang,
             languages::Language::Elixir => &mut self.elixir,
         }
-        .get_or_insert_with(ToolConfig::default)
+        .get_or_insert_default()
     }
 
     fn component(&self, kind: &components::Kind) -> Option<&ToolConfig> {
@@ -45,6 +45,14 @@ impl Config {
             components::Kind::Elp => self.elp.as_ref(),
             components::Kind::Rebar3 => self.rebar3.as_ref(),
         }
+    }
+
+    fn component_mut(&mut self, kind: &components::Kind) -> &mut ToolConfig {
+        match kind {
+            components::Kind::Elp => &mut self.elp,
+            components::Kind::Rebar3 => &mut self.rebar3,
+        }
+        .get_or_insert_default()
     }
 }
 
@@ -131,11 +139,7 @@ pub fn set_component_default(
     mut config: Config,
 ) -> Result<()> {
     installs::lookup(&config, &kind.to_string(), id)?;
-    let settings = match kind {
-        components::Kind::Elp => &mut config.elp,
-        components::Kind::Rebar3 => &mut config.rebar3,
-    };
-    settings.get_or_insert_with(ToolConfig::default).default = Some(id.to_owned());
+    config.component_mut(kind).default = Some(id.to_owned());
     write_config(config_file, config)
 }
 

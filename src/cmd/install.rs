@@ -4,10 +4,10 @@ use crate::{
     config,
     installs::{self, Metadata, PendingInstall},
 };
-use color_eyre::eyre::{eyre, Report, Result, WrapErr};
+use color_eyre::eyre::{eyre, Result, WrapErr};
 use flate2::read::GzDecoder;
 use std::fs::{self, File};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tar::Archive;
 use tempdir::TempDir;
 use zip;
@@ -22,26 +22,19 @@ pub fn run<T: Installable>(
     libc: &Option<Libc>,
     force: bool,
     config: &config::Config,
-) -> Result<String, Report> {
+) -> Result<()> {
     let release_dir = installable.release_dir(id, config)?;
     installs::check_destination(&release_dir, force)?;
+    // Resolved before downloading so a missing dependency fails fast.
+    let metadata = installable.install_metadata(release, config)?;
 
     let github_repo = installable.binary_repo();
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let asset_name = installable.asset_prefix(libc, config)?;
+    let asset_name = installable.asset_prefix(libc, &metadata)?;
     let file = github::download_asset(&asset_name, out_dir.path(), &github_repo, release)?;
     debug!("file {:?} downloaded", file);
     let extract_dir = installable.extract_dir(&release_dir);
 
-    let metadata = Metadata {
-        release: release.to_owned(),
-        otp_vsn: if installable.to_string() == "elixir" {
-            Some(crate::languages::elixir::otp_major_vsn(config)?)
-        } else {
-            None
-        },
-        ..Metadata::default()
-    };
     install_asset(&file, &release_dir, &extract_dir, force, &metadata)
 }
 
@@ -51,17 +44,14 @@ fn install_asset(
     extract_dir: &Path,
     force: bool,
     metadata: &Metadata,
-) -> Result<String> {
+) -> Result<()> {
     let pending = PendingInstall::new(release_dir, force)?;
     let open_file = File::open(file)
         .wrap_err_with(|| format!("Downloaded Github asset {:?} not found", file))?;
     #[cfg(windows)]
     if file.extension().is_some_and(|ext| ext == "exe") {
         pending.install_in_place(metadata, |destination| {
-            exe_run(
-                file.to_path_buf(),
-                destination.to_string_lossy().into_owned(),
-            )?;
+            exe_run(file, destination.to_string_lossy().into_owned())?;
             // OTP's NSIS installer starts Install.exe asynchronously. Its last
             // step copies start.boot. Wait for that elevated child rather than
             // re-running it without the installer's permissions.
@@ -75,7 +65,7 @@ fn install_asset(
                 "Timed out waiting for Erlang installer initialization"
             ))
         })?;
-        return Ok(release_dir.to_string_lossy().into_owned());
+        return Ok(());
     }
     let payload = pending.payload();
     let extract_dir = payload.join(extract_dir.strip_prefix(release_dir)?);
@@ -84,9 +74,8 @@ fn install_asset(
     // TODO: better ways to check the type than the extension
     let ext = file.extension().map_or("", |e| e.to_str().unwrap_or(""));
     match ext {
-        "exe" => {
-            exe_run(file.to_path_buf(), payload.to_str().unwrap().to_owned())?;
-        }
+        // Native installers are handled above on Windows and unsupported elsewhere.
+        "exe" => return Err(eyre!("Windows installers can only be run on Windows")),
         "zip" => {
             let mut archive = zip::ZipArchive::new(open_file)?;
             archive.extract(&extract_dir)?;
@@ -113,8 +102,7 @@ fn install_asset(
         }
     }
 
-    pending.publish(&payload, metadata)?;
-    Ok(release_dir.to_str().unwrap().to_owned())
+    pending.publish(&payload, metadata)
 }
 
 #[cfg(unix)]
@@ -130,16 +118,9 @@ fn set_permissions(_to: &Path) -> Result<()> {
     Ok(())
 }
 
-#[cfg(unix)]
-fn exe_run(_cmd: PathBuf, _release_dir: String) -> Result<(), Report> {
-    Err(eyre!(
-        "Attempted to execute a Windows exeutable on a non-Windows system"
-    ))
-}
-
 // thanks rustup command.rs
 #[cfg(windows)]
-fn exe_run(file: PathBuf, release_dir: String) -> Result<ExitStatus, Report> {
+fn exe_run(file: &Path, release_dir: String) -> Result<ExitStatus> {
     use std::os::windows::process::CommandExt;
     use std::process::Command;
     use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
@@ -172,6 +153,7 @@ mod tests {
     use crate::{components::Kind, languages::Language};
     use flate2::{write::GzEncoder, Compression};
     use std::io::Write;
+    use std::path::PathBuf;
     use zip::write::SimpleFileOptions;
 
     const CONTENTS: &[u8] = b"#!/bin/sh\nexit 0\n";
@@ -204,7 +186,7 @@ mod tests {
         file: &Path,
         root: &Path,
         force: bool,
-    ) -> Result<String> {
+    ) -> Result<PathBuf> {
         install_fixture_with_id(installable, file, root, "custom-id", force)
     }
 
@@ -214,7 +196,7 @@ mod tests {
         root: &Path,
         id: &str,
         force: bool,
-    ) -> Result<String> {
+    ) -> Result<PathBuf> {
         let config = toml::from_str::<config::Config>(&format!(
             "install_dir = {:?}",
             root.join("installs")
@@ -230,7 +212,8 @@ mod tests {
                 release: "same-release".to_owned(),
                 ..Metadata::default()
             },
-        )
+        )?;
+        Ok(release_dir)
     }
 
     fn assert_executable(file: &Path) -> Result<()> {
@@ -250,12 +233,9 @@ mod tests {
 
         let installed = install_fixture(&Kind::Elp, &file, dir.path(), false)?;
 
-        assert_eq!(
-            Path::new(&installed),
-            dir.path().join("installs/elp/custom-id")
-        );
-        assert_executable(&Path::new(&installed).join("bin/elp"))?;
-        assert!(!Path::new(&installed).join("elp").exists());
+        assert_eq!(installed, dir.path().join("installs/elp/custom-id"));
+        assert_executable(&installed.join("bin/elp"))?;
+        assert!(!installed.join("elp").exists());
         Ok(())
     }
 
@@ -267,7 +247,7 @@ mod tests {
 
             let installed = install_fixture(&kind, &file, dir.path(), false)?;
 
-            assert_executable(&Path::new(&installed).join("bin").join(name))?;
+            assert_executable(&installed.join("bin").join(name))?;
         }
         Ok(())
     }
@@ -280,7 +260,7 @@ mod tests {
 
         let installed = install_fixture(&Kind::Rebar3, &file, dir.path(), false)?;
 
-        assert_executable(&Path::new(&installed).join("bin/rebar3"))?;
+        assert_executable(&installed.join("bin/rebar3"))?;
         Ok(())
     }
 
@@ -302,11 +282,8 @@ mod tests {
             for id in ["first", "second"] {
                 let id = id.to_owned();
                 let installed = install_fixture_with_id(&kind, &file, dir.path(), &id, false)?;
-                assert_eq!(
-                    Path::new(&installed),
-                    dir.path().join("installs").join(&name).join(&id)
-                );
-                assert_executable(&Path::new(&installed).join("bin").join(&name))?;
+                assert_eq!(installed, dir.path().join("installs").join(&name).join(&id));
+                assert_executable(&installed.join("bin").join(&name))?;
             }
 
             for id in ["first", "second"] {
@@ -353,7 +330,7 @@ mod tests {
             let installed = install_fixture(&language, &file, dir.path(), false)?;
 
             let executable = Path::new(name).file_name().unwrap();
-            assert_executable(&Path::new(&installed).join("bin").join(executable))?;
+            assert_executable(&installed.join("bin").join(executable))?;
         }
         Ok(())
     }
@@ -404,7 +381,7 @@ mod tests {
 
         let error = install_fixture(&Language::Erlang, &file, dir.path(), false).unwrap_err();
 
-        assert!(error.to_string().contains("non-Windows system"));
+        assert!(error.to_string().contains("only be run on Windows"));
         Ok(())
     }
 }
@@ -412,6 +389,7 @@ mod tests {
 #[cfg(test)]
 mod failure_tests {
     use super::*;
+    use std::io::Write;
 
     #[test]
     fn corrupt_archive_never_publishes_or_replaces_an_install() -> Result<()> {
@@ -456,7 +434,6 @@ mod failure_tests {
         let asset = dir.path().join("elixir.zip");
         let mut archive = zip::ZipWriter::new(File::create(&asset)?);
         archive.start_file("bin/elixir", zip::write::SimpleFileOptions::default())?;
-        use std::io::Write;
         archive.write_all(b"elixir executable")?;
         archive.finish()?;
         let destination = dir.path().join("elixir/custom-name");

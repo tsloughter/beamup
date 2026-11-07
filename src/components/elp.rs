@@ -1,5 +1,4 @@
 use crate::components::Kind;
-use crate::config;
 use crate::github::GithubRepo;
 use color_eyre::eyre::{Result, WrapErr};
 use regex::Regex;
@@ -10,12 +9,7 @@ pub fn bins() -> Vec<(String, Kind)> {
     vec![(KIND_STRING.to_string(), Kind::Elp)]
 }
 
-pub fn asset_prefix(config: &config::Config) -> Result<regex::Regex> {
-    let otp_major_vsn = match config::get_otp_major_vsn(config) {
-        Ok(otp_major_vsn) => otp_major_vsn,
-        Err(_) => "".to_string(),
-    };
-
+pub fn asset_prefix(otp_major_vsn: &str) -> Result<regex::Regex> {
     match (std::env::consts::ARCH, std::env::consts::OS) {
         ("x86_64", "linux") => {
             Regex::new(format!("elp-linux-x86_64-unknown-linux-gnu-otp-{otp_major_vsn:}").as_str())

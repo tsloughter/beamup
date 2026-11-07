@@ -81,7 +81,7 @@ There is no install registry in the config. `beamup list` discovers language
 and component installs from directories containing `bin`, and sorts their IDs.
 Existing directories with this layout can be used without metadata. New installs
 contain a `.beamup-install.toml` file recording the requested release, the OTP
-major version used to select an Elixir asset, and build options for source builds,
+major version used to select an Elixir or ELP asset, and build options for source builds,
 where applicable. Metadata is descriptive; it is not used to locate an install.
 
 An install ID must be a single directory name. Absolute paths, `.` and `..`,

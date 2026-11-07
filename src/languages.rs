@@ -1,5 +1,6 @@
 use crate::config;
 use crate::github::GithubRepo;
+use crate::installs::Metadata;
 use clap::ValueEnum;
 use color_eyre::eyre::{eyre, Result};
 use std::path::{Path, PathBuf};
@@ -15,6 +16,17 @@ pub enum Language {
     Elixir,
     Erlang,
     Gleam,
+}
+
+impl Language {
+    /// Heading used when listing installs.
+    pub fn label(&self) -> &'static str {
+        match self {
+            Language::Elixir => "Elixir",
+            Language::Erlang => "Erlang",
+            Language::Gleam => "Gleam",
+        }
+    }
 }
 
 pub fn print() {
@@ -104,9 +116,25 @@ impl Installable for Language {
         }
     }
 
-    fn asset_prefix(&self, libc: &Option<Libc>, config: &config::Config) -> Result<regex::Regex> {
+    fn install_metadata(&self, release: &str, config: &config::Config) -> Result<Metadata> {
+        Ok(Metadata {
+            release: release.to_owned(),
+            otp_vsn: match self {
+                Language::Elixir => Some(elixir::otp_major_vsn(config)?),
+                _ => None,
+            },
+            ..Metadata::default()
+        })
+    }
+
+    fn asset_prefix(&self, libc: &Option<Libc>, metadata: &Metadata) -> Result<regex::Regex> {
         match self {
-            Language::Elixir => elixir::asset_prefix(config),
+            Language::Elixir => {
+                let otp_major_vsn = metadata.otp_vsn.as_deref().ok_or_else(|| {
+                    eyre!("Elixir install metadata is missing the OTP major version")
+                })?;
+                elixir::asset_prefix(otp_major_vsn)
+            }
             Language::Erlang => erlang::asset_prefix(libc),
             Language::Gleam => gleam::asset_prefix(),
         }
