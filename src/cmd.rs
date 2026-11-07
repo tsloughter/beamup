@@ -1,5 +1,4 @@
 pub mod build;
-pub mod component_install;
 pub mod default;
 pub mod install;
 pub mod list;

@@ -25,10 +25,6 @@ impl Kind {
 }
 
 impl Installable for Kind {
-    fn default_build_options(&self, _config: &config::Config) -> String {
-        "".to_string()
-    }
-
     fn binary_repo(&self) -> GithubRepo {
         match self {
             Kind::Elp => elp::get_github_repo(),
@@ -36,16 +32,12 @@ impl Installable for Kind {
         }
     }
 
-    fn source_repo(&self) -> GithubRepo {
-        self.binary_repo()
-    }
-
     fn release_dir(&self, id: &String) -> Result<PathBuf> {
         release_dir(self.to_string(), id)
     }
 
     fn extract_dir(&self, id: &String) -> Result<PathBuf> {
-        self.release_dir(id)
+        Ok(self.release_dir(id)?.join("bin"))
     }
 
     fn asset_prefix(&self, _libc: &Option<Libc>) -> Result<regex::Regex> {
