@@ -17,8 +17,8 @@ fn component_install_checks_the_selected_id_directory() -> Result<(), Box<dyn st
 
     for component in ["elp", "rebar3"] {
         let component_dir = install_root.join(component);
-        // Both directories exist, so even the old implementation fails before downloading.
-        // The error must identify the selected ID, rather than the release version.
+        // Every candidate directory already exists, so the install must fail before
+        // downloading, and the error must name the selected ID, not the release version.
         for id in [release, "first", "second"] {
             let install_dir = component_dir.join(id);
             fs::create_dir_all(&install_dir)?;

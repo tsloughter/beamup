@@ -2,9 +2,10 @@
 
 use std::{
     fs,
+    io::Write,
     os::unix::fs::PermissionsExt,
     path::PathBuf,
-    process::{Command, Output},
+    process::{Command, Output, Stdio},
 };
 use tempdir::TempDir;
 
@@ -173,6 +174,38 @@ fn shims_use_configured_root_and_local_ids_for_languages_and_components() -> Res
         assert!(String::from_utf8(output.stderr)?.contains("Invalid install ID"));
         fs::remove_file(f.project.join(".beamup.toml"))?;
     }
+    Ok(())
+}
+
+#[test]
+fn shims_start_executables_by_name_so_erlang_wrappers_find_erl() -> Result {
+    // erlc, escript and friends locate `erl` from their argv[0] and split it on
+    // whitespace. The fixture's install root contains a space, so this only
+    // passes when the shim starts the executable by bare name through PATH,
+    // with this install's bin directory first. A script cannot observe argv[0]
+    // (the kernel hands the interpreter the resolved path instead), so the fake
+    // erlc is the shell itself, reading its commands from stdin.
+    let f = Fixture::new()?;
+    f.install("erlang", "wrapper", "erl")?;
+    let bin_dir = f.install_dir.join("erlang/wrapper/bin");
+    std::os::unix::fs::symlink("/bin/sh", bin_dir.join("erlc"))?;
+    stdout(f.cli(&["default", "erlang", "wrapper"])?);
+    let shim = f.shim("erlc")?;
+    let mut child = f
+        .command(shim)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"echo \"$0\"\ncommand -v erl\n")?;
+    assert_eq!(
+        stdout(child.wait_with_output()?),
+        format!("erlc\n{}\n", bin_dir.join("erl").display())
+    );
     Ok(())
 }
 

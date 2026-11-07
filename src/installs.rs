@@ -197,6 +197,20 @@ impl PendingInstall {
             }
             return Err(error);
         }
+        // The install is published; a leftover staging directory must not fail it,
+        // but it is hidden from `list`, so say where it is.
+        let staging = self.staging.path().to_owned();
+        if let Err(error) = self.staging.close() {
+            let retained = if had_previous {
+                "the previous install"
+            } else {
+                "staging files"
+            };
+            warn!(
+                "Unable to remove {retained} at {}: {error}",
+                staging.display()
+            );
+        }
         Ok(())
     }
 }

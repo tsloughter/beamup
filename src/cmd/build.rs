@@ -58,7 +58,7 @@ pub fn run<T: Buildable>(
     let tar_gz = File::open(&file).wrap_err_with(|| {
         format!(
             "Downloaded Github release tarball {} into file {:?} not found",
-            git_ref, &file
+            git_ref, file
         )
     })?;
 
@@ -97,20 +97,18 @@ fn build(
     dir: &Path,
     user_build_options: &str,
 ) -> Result<PathBuf> {
-    let spinner_style = ProgressStyle::default_spinner()
-        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
-        .template("{prefix:.bold.dim} {spinner} {wide_msg}")?;
-    let pb = ProgressBar::new_spinner();
-    pb.set_style(spinner_style);
-    pb.enable_steady_tick(Duration::from_millis(100));
-
     let mut build_options = shell_words::split(user_build_options)?;
     // The configured prefix must be the final path. DESTDIR stages the files
     // without embedding a temporary prefix in Erlang's scripts and symlinks.
     if build_options.iter().any(|option| {
         ["--prefix", "--exec-prefix", "--bindir", "--libdir"]
             .iter()
-            .any(|name| option == name || option.starts_with(&format!("{name}=")))
+            .any(|name| {
+                option == name
+                    || option
+                        .strip_prefix(name)
+                        .is_some_and(|rest| rest.starts_with('='))
+            })
     }) {
         return Err(eyre!("Install path configure options are managed by beamup; set install_dir in the config instead"));
     }
@@ -118,6 +116,14 @@ fn build(
     let num_cpus = num_cpus::get().to_string();
     let destdir = staging_dir.join("destdir");
     let payload = destdir.join(install_dir.strip_prefix("/")?);
+
+    // Start the spinner only once every early-return check has passed.
+    let spinner_style = ProgressStyle::default_spinner()
+        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
+        .template("{prefix:.bold.dim} {spinner} {wide_msg}")?;
+    let pb = ProgressBar::new_spinner();
+    pb.set_style(spinner_style);
+    pb.enable_steady_tick(Duration::from_millis(100));
     let steps = [
         ("./configure", build_options),
         ("make", vec!["-j".to_owned(), num_cpus.clone()]),

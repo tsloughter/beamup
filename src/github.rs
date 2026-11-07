@@ -155,7 +155,7 @@ pub fn download_asset(
 
             debug!(
                 "Downloading release asset {:?} to {:?}",
-                &asset.browser_download_url, file
+                asset.browser_download_url, file
             );
 
             http_download(
