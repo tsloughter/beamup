@@ -8,7 +8,7 @@
 
 A tool for installing languages (support for Gleam, Erlang and Elixir) that run
 on the [Erlang VM](https://www.erlang.org/) (BEAM) and related components --
-component support to come in the future.
+including ELP and rebar3.
 
 ## Install
 
@@ -50,12 +50,55 @@ Hard links to the `beamup` executable for each language command, i.e. `gleam`,
 
 This directory must be added to your `PATH` for `beamup` installs to work.
 
-Installs are currently done to the applications data directory. This defaults
-to:
+Installs are stored at `<install_dir>/<language-or-component>/<install-id>`.
+The `install_dir` setting in the global config controls the root for installing,
+building, listing, and running tools. Its default is the application's data
+directory, giving these paths:
 
 - Linux: `~/.local/share/beamup/<language>/<id>`
 - Mac: `~/Library/Application Support/beamup/<language>/<id>`
 - Windows: `~\AppData\Local\beamup\<language>\<id>`
+
+For example, a global config can contain:
+
+```toml
+install_dir = "/srv/beamup"
+
+[erlang]
+default = "otp-debug"
+default_build_options = "--enable-lock-counter"
+
+[rebar3]
+default = "3.23.0"
+```
+
+This selects `/srv/beamup/erlang/otp-debug` and
+`/srv/beamup/rebar3/3.23.0`. A relative `install_dir` is resolved relative to
+the global config file's directory. Project `.beamup.toml` files select install
+IDs within this same root.
+
+There is no install registry in the config. `beamup list` discovers language
+and component installs from directories containing `bin`, and sorts their IDs.
+Existing directories with this layout can be used without metadata. New installs
+contain a `.beamup-install.toml` file recording the requested release, the OTP
+major version used to select an Elixir asset, and build options for source builds,
+where applicable. Metadata is descriptive; it is not used to locate an install.
+
+An install ID must be a single directory name. Absolute paths, `.` and `..`,
+path separators, control characters, Windows-invalid filename characters, and
+trailing dots or spaces are rejected. The `.beamup-install-` prefix is reserved
+for staging directories. If a release or branch name contains a slash, supply a
+separate ID with `--id`.
+
+Archive installs and source builds are prepared in temporary directories on the
+same filesystem as the destination. They are published after success, with
+metadata already in place. Windows native installers run at the final path so
+that OS registrations use the correct directory; an incomplete marker hides
+their output until success. Discovery ignores staging directories and installs
+marked incomplete. Failed installs and builds restore or preserve the previous
+install when `--force` is used.
+Erlang source builds use the final configured prefix with `DESTDIR` staging;
+install path configure options such as `--prefix` are managed by beamup.
 
 For languages that support building from source you can pass additional build
 options (like what is passed to `./configure` for Erlang) with either the
@@ -118,6 +161,7 @@ with an entry like `erlang = "OTP-25.3.2.7"` and running an Erlang command like
 
 ### Other Commands
 
+- `list`: List installed languages and components from the filesystem
 - `releases <language>`: List the available releases that can be installed
 - `update-links`: Update the hard links that exists for each language executable
 

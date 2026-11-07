@@ -4,7 +4,7 @@ pub mod rebar3;
 use crate::config;
 use crate::github::GithubRepo;
 use color_eyre::eyre::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use strum::IntoEnumIterator;
 
 use crate::installable::{Installable, Libc};
@@ -32,17 +32,13 @@ impl Installable for Kind {
         }
     }
 
-    fn release_dir(&self, id: &String) -> Result<PathBuf> {
-        release_dir(self.to_string(), id)
+    fn extract_dir(&self, release_dir: &Path) -> PathBuf {
+        release_dir.join("bin")
     }
 
-    fn extract_dir(&self, id: &String) -> Result<PathBuf> {
-        Ok(self.release_dir(id)?.join("bin"))
-    }
-
-    fn asset_prefix(&self, _libc: &Option<Libc>) -> Result<regex::Regex> {
+    fn asset_prefix(&self, _libc: &Option<Libc>, config: &config::Config) -> Result<regex::Regex> {
         match self {
-            Kind::Elp => elp::asset_prefix(),
+            Kind::Elp => elp::asset_prefix(config),
             Kind::Rebar3 => rebar3::asset_prefix(),
         }
     }
@@ -65,10 +61,4 @@ pub fn print() {
 
 pub fn bins() -> Vec<(String, Kind)> {
     Kind::iter().flat_map(|kind| kind.bins()).collect()
-}
-
-pub fn release_dir(kind_str: String, id: &String) -> Result<PathBuf> {
-    let release_dir = config::data_dir()?.join("beamup").join(kind_str).join(id);
-
-    Ok(release_dir)
 }

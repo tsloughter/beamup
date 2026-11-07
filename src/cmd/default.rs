@@ -4,7 +4,7 @@ use color_eyre::eyre::Result;
 
 pub fn run(
     language: &Language,
-    id: &String,
+    id: &str,
     config_file: String,
     config: config::Config,
 ) -> Result<()> {

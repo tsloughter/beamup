@@ -1,9 +1,8 @@
 use crate::config;
 use crate::github::GithubRepo;
-use crate::languages;
 use clap::ValueEnum;
 use color_eyre::eyre::{eyre, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use strum::IntoEnumIterator;
 pub mod elixir;
 pub mod erlang;
@@ -98,41 +97,25 @@ impl Installable for Language {
         }
     }
 
-    fn release_dir(&self, id: &String) -> Result<PathBuf> {
-        languages::release_dir(self.to_string(), id)
-    }
-
-    fn extract_dir(&self, id: &String) -> Result<PathBuf> {
+    fn extract_dir(&self, release_dir: &Path) -> PathBuf {
         match self {
-            Language::Gleam => {
-                let release_dir = languages::release_dir(self.to_string(), id)?;
-                Ok(release_dir.join("bin"))
-            }
-            _ => languages::release_dir(self.to_string(), id),
+            Language::Gleam => release_dir.join("bin"),
+            _ => release_dir.to_owned(),
         }
     }
 
-    fn asset_prefix(&self, libc: &Option<Libc>) -> Result<regex::Regex> {
+    fn asset_prefix(&self, libc: &Option<Libc>, config: &config::Config) -> Result<regex::Regex> {
         match self {
-            Language::Elixir => elixir::asset_prefix(),
+            Language::Elixir => elixir::asset_prefix(config),
             Language::Erlang => erlang::asset_prefix(libc),
             Language::Gleam => gleam::asset_prefix(),
         }
     }
 }
 
-pub fn bin_to_language(bin: String, config: &config::Config) -> Result<languages::Language> {
+pub fn bin_to_language(bin: String, config: &config::Config) -> Result<Language> {
     match bins(config).iter().find(|&(k, _)| *k == bin) {
         Some((_, language)) => Ok(language.clone()),
         _ => Err(eyre!("No language to run command {bin} for found")),
     }
-}
-
-pub fn release_dir(language_str: String, id: &String) -> Result<PathBuf> {
-    let release_dir = config::data_dir()?
-        .join("beamup")
-        .join(language_str)
-        .join(id);
-
-    Ok(release_dir)
 }

@@ -17,17 +17,17 @@ use std::process;
 
 mod config;
 
-use color_eyre::{config::HookBuilder, eyre::eyre, eyre::Report, eyre::Result};
+use color_eyre::{config::HookBuilder, eyre::eyre, eyre::Report, eyre::Result, eyre::WrapErr};
 
 mod cmd;
 mod components;
 mod git;
 mod github;
 mod installable;
+mod installs;
 mod languages;
 mod links;
 mod run;
-mod utils;
 
 #[derive(Parser, Debug)]
 #[command(version, about = "Manage BEAM language installs.", long_about = None)]
@@ -291,7 +291,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
     let cli = Cli::parse();
 
     let (config_file, config) = match &cli.config {
-        Some(file) => (file.to_owned(), config::read_config(file.to_owned())),
+        Some(file) => (file.to_owned(), config::read_config(file.to_owned())?),
         None => config::home_config()?,
     };
 
@@ -315,8 +315,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
         }
         SubCommands::List => {
             debug!("running list");
-            cmd::list::run(&config);
-            Ok(())
+            cmd::list::run(&config)
         }
         SubCommands::Releases(ReleasesArgs { language, .. }) => {
             debug!("running releases: language={:?}", language);
@@ -338,7 +337,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id, repo, force, libc
             );
 
-            check_if_install_supported(language)?;
+            check_if_install_supported(language, &config)?;
 
             // if no user supplied id then use the name of
             // the release to install
@@ -349,10 +348,10 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
                 language, release, id
             );
 
-            let dir = cmd::install::run(language, id, release, libc, *force)?;
+            cmd::install::run(language, id, release, libc, *force, &config)?;
             cmd::update_links::run(Some(language), &config)?;
 
-            config::add_install(language, id, release, dir, config_file, config)?;
+            config::set_default(language, id, config_file, config)?;
 
             info!(
                 "Completed install of {:?} for release={} id={}",
@@ -424,18 +423,11 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             let id = id.clone().unwrap_or(git_ref.to_string());
 
             info!("Building {:?} for ref={} id={}", language, git_ref, id);
-            let dir = cmd::build::run(language, &git_ref, &id, repo, *force, &config)?;
+            cmd::build::run(language, &git_ref, &id, repo, *force, &config)?;
 
             cmd::update_links::run(Some(language), &config)?;
 
-            config::add_install(
-                language,
-                &id,
-                &git_ref.to_string(),
-                dir,
-                config_file,
-                config,
-            )?;
+            config::set_default(language, &id, config_file, config)?;
 
             info!(
                 "Completed build and install of {:?} for ref={} id={}",
@@ -462,7 +454,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
             // the release to install
             let id = id.as_ref().unwrap_or(release);
 
-            let release_dir = cmd::install::run(component, id, release, &None, *force)?;
+            cmd::install::run(component, id, release, &None, *force, &config)?;
 
             let bin_dir = config::bin_dir();
             let _ = std::fs::create_dir_all(&bin_dir);
@@ -472,14 +464,7 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
             links::update(bins.into_iter(), &bin_dir)?;
 
-            config::add_component_install(
-                component,
-                id,
-                &release.to_string(),
-                release_dir.to_string(),
-                config_file,
-                config,
-            )?;
+            config::set_component_default(component, id, config_file, config)?;
 
             info!("Completed install of component {component:?} with id={id}");
 
@@ -492,7 +477,10 @@ fn handle_command(_bin_path: PathBuf) -> Result<(), Report> {
 
 // only Elixir and Gleam support install on any platform
 // Erlang only on Windows
-fn check_if_install_supported(language: &languages::Language) -> Result<()> {
+fn check_if_install_supported(
+    language: &languages::Language,
+    config: &config::Config,
+) -> Result<()> {
     if *language == languages::Language::Erlang {
         // install command for Erlang only supports Windows on x86 or x86_64 at this time
         match (std::env::consts::ARCH, std::env::consts::OS) {
@@ -512,10 +500,7 @@ fn check_if_install_supported(language: &languages::Language) -> Result<()> {
 
     if *language == languages::Language::Elixir {
         // catch when no Erlang is installed and made the default
-        match config::get_otp_major_vsn() {
-            Err(_) => return Err(eyre!("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")),
-            _ => ()
-        }
+        languages::elixir::otp_major_vsn(config).wrap_err("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")?;
     }
 
     Ok(())
@@ -585,10 +570,10 @@ fn main() -> Result<(), Report> {
         {
             Some((c, _)) => {
                 let bin = Path::new(c).file_name().unwrap();
-                run::run(bin.to_str().unwrap(), args)
+                run::run(bin.to_str().unwrap(), args, &config)
             }
             None => match components::bins().iter().find(|(e, _)| e.as_str() == f) {
-                Some((e, k)) => run::run_component(e, k, args),
+                Some((e, k)) => run::run_component(e, k, args, &config),
                 None => Err(eyre!("beamup found no such command: {f:?}")),
             },
         }

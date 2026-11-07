@@ -1,6 +1,9 @@
 use crate::github;
 use crate::installable::{Installable, Libc};
-use crate::utils;
+use crate::{
+    config,
+    installs::{self, Metadata, PendingInstall},
+};
 use color_eyre::eyre::{eyre, Report, Result, WrapErr};
 use flate2::read::GzDecoder;
 use std::fs::{self, File};
@@ -14,22 +17,32 @@ use std::process::ExitStatus;
 
 pub fn run<T: Installable>(
     installable: &T,
-    id: &String,
+    id: &str,
     release: &str,
     libc: &Option<Libc>,
     force: bool,
+    config: &config::Config,
 ) -> Result<String, Report> {
-    let release_dir = installable.release_dir(id)?;
-    utils::check_release_dir(&release_dir, force)?;
+    let release_dir = installable.release_dir(id, config)?;
+    installs::check_destination(&release_dir, force)?;
 
     let github_repo = installable.binary_repo();
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let asset_name = installable.asset_prefix(libc)?;
+    let asset_name = installable.asset_prefix(libc, config)?;
     let file = github::download_asset(&asset_name, out_dir.path(), &github_repo, release)?;
     debug!("file {:?} downloaded", file);
-    let extract_dir = installable.extract_dir(id)?;
+    let extract_dir = installable.extract_dir(&release_dir);
 
-    install_asset(&file, &release_dir, &extract_dir, force)
+    let metadata = Metadata {
+        release: release.to_owned(),
+        otp_vsn: if installable.to_string() == "elixir" {
+            Some(crate::languages::elixir::otp_major_vsn(config)?)
+        } else {
+            None
+        },
+        ..Metadata::default()
+    };
+    install_asset(&file, &release_dir, &extract_dir, force, &metadata)
 }
 
 fn install_asset(
@@ -37,32 +50,58 @@ fn install_asset(
     release_dir: &Path,
     extract_dir: &Path,
     force: bool,
+    metadata: &Metadata,
 ) -> Result<String> {
+    let pending = PendingInstall::new(release_dir, force)?;
     let open_file = File::open(file)
         .wrap_err_with(|| format!("Downloaded Github asset {:?} not found", file))?;
-    utils::maybe_create_release_dir(&release_dir.to_path_buf(), force)?;
+    #[cfg(windows)]
+    if file.extension().is_some_and(|ext| ext == "exe") {
+        pending.install_in_place(metadata, |destination| {
+            exe_run(
+                file.to_path_buf(),
+                destination.to_string_lossy().into_owned(),
+            )?;
+            // OTP's NSIS installer starts Install.exe asynchronously. Its last
+            // step copies start.boot. Wait for that elevated child rather than
+            // re-running it without the installer's permissions.
+            for _ in 0..100 {
+                if destination.join("bin/start.boot").is_file() {
+                    return Ok(());
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+            Err(eyre!(
+                "Timed out waiting for Erlang installer initialization"
+            ))
+        })?;
+        return Ok(release_dir.to_string_lossy().into_owned());
+    }
+    let payload = pending.payload();
+    let extract_dir = payload.join(extract_dir.strip_prefix(release_dir)?);
+    fs::create_dir_all(&extract_dir)?;
 
     // TODO: better ways to check the type than the extension
     let ext = file.extension().map_or("", |e| e.to_str().unwrap_or(""));
     match ext {
         "exe" => {
-            exe_run(file.to_path_buf(), release_dir.to_str().unwrap().to_owned())?;
+            exe_run(file.to_path_buf(), payload.to_str().unwrap().to_owned())?;
         }
         "zip" => {
             let mut archive = zip::ZipArchive::new(open_file)?;
-            archive.extract(extract_dir)?;
+            archive.extract(&extract_dir)?;
         }
         "gz" | "tgz" => {
             let tar = GzDecoder::new(open_file);
             let mut archive = Archive::new(tar);
-            archive.unpack(extract_dir)?;
+            archive.unpack(&extract_dir)?;
         }
         _ => {
             let install_file = extract_dir.join(
                 file.file_name()
                     .ok_or_else(|| eyre!("Downloaded asset {:?} has no file name", file))?,
             );
-            fs::create_dir_all(extract_dir)?;
+            fs::create_dir_all(&extract_dir)?;
             fs::copy(file, &install_file).wrap_err_with(|| {
                 format!(
                     "Failed to copy {} to {}",
@@ -74,6 +113,7 @@ fn install_asset(
         }
     }
 
+    pending.publish(&payload, metadata)?;
     Ok(release_dir.to_str().unwrap().to_owned())
 }
 
@@ -119,7 +159,11 @@ fn exe_run(file: PathBuf, release_dir: String) -> Result<ExitStatus, Report> {
     let cmd = binding.raw_arg(&format!("/S /D={release_dir:}"));
     debug!("Command being run: {cmd:?}");
 
-    Ok(cmd.status()?)
+    let status = cmd.status()?;
+    if !status.success() {
+        return Err(eyre!("Windows installer failed with {status}"));
+    }
+    Ok(status)
 }
 
 #[cfg(test)]
@@ -161,21 +205,32 @@ mod tests {
         root: &Path,
         force: bool,
     ) -> Result<String> {
-        install_fixture_with_id(installable, file, root, &"custom-id".to_owned(), force)
+        install_fixture_with_id(installable, file, root, "custom-id", force)
     }
 
     fn install_fixture_with_id(
         installable: &impl Installable,
         file: &Path,
         root: &Path,
-        id: &String,
+        id: &str,
         force: bool,
     ) -> Result<String> {
-        let release_dir = installable.release_dir(id)?;
-        let extract_dir = installable.extract_dir(id)?;
-        let local_release_dir = root.join(release_dir.file_name().unwrap());
-        let local_extract_dir = local_release_dir.join(extract_dir.strip_prefix(release_dir)?);
-        install_asset(file, &local_release_dir, &local_extract_dir, force)
+        let config = toml::from_str::<config::Config>(&format!(
+            "install_dir = {:?}",
+            root.join("installs")
+        ))?;
+        let release_dir = installable.release_dir(id, &config)?;
+        let extract_dir = installable.extract_dir(&release_dir);
+        install_asset(
+            file,
+            &release_dir,
+            &extract_dir,
+            force,
+            &Metadata {
+                release: "same-release".to_owned(),
+                ..Metadata::default()
+            },
+        )
     }
 
     fn assert_executable(file: &Path) -> Result<()> {
@@ -195,7 +250,10 @@ mod tests {
 
         let installed = install_fixture(&Kind::Elp, &file, dir.path(), false)?;
 
-        assert_eq!(Path::new(&installed), dir.path().join("custom-id"));
+        assert_eq!(
+            Path::new(&installed),
+            dir.path().join("installs/elp/custom-id")
+        );
         assert_executable(&Path::new(&installed).join("bin/elp"))?;
         assert!(!Path::new(&installed).join("elp").exists());
         Ok(())
@@ -240,37 +298,41 @@ mod tests {
                 }
             };
             let release = "same-release".to_owned();
-            let mut config = crate::config::ComponentConfig::default();
 
             for id in ["first", "second"] {
                 let id = id.to_owned();
                 let installed = install_fixture_with_id(&kind, &file, dir.path(), &id, false)?;
-                assert_eq!(Path::new(&installed), dir.path().join(&id));
+                assert_eq!(
+                    Path::new(&installed),
+                    dir.path().join("installs").join(&name).join(&id)
+                );
                 assert_executable(&Path::new(&installed).join("bin").join(&name))?;
-                config = crate::config::update_component_config(
-                    &kind, &id, &release, installed, config,
-                )?;
             }
 
-            let config = toml::Value::try_from(config)?;
             for id in ["first", "second"] {
-                assert_eq!(
-                    config["installs"][id]["release"].as_str(),
-                    Some(release.as_str())
-                );
-                assert_eq!(
-                    config["installs"][id]["dir"].as_str(),
-                    dir.path().join(id).to_str()
-                );
+                let metadata: Metadata = toml::from_str(&fs::read_to_string(
+                    dir.path()
+                        .join("installs")
+                        .join(&name)
+                        .join(id)
+                        .join(installs::METADATA_FILE),
+                )?)?;
+                assert_eq!(metadata.release, release);
             }
             assert!(!dir.path().join(&release).exists());
 
             // Forcing one ID must not remove or modify the other installation.
-            let second_marker = dir.path().join("second/keep");
+            let second_marker = dir.path().join("installs").join(&name).join("second/keep");
             fs::write(&second_marker, b"keep")?;
-            install_fixture_with_id(&kind, &file, dir.path(), &"first".to_owned(), true)?;
+            install_fixture_with_id(&kind, &file, dir.path(), "first", true)?;
             assert_eq!(fs::read(second_marker)?, b"keep");
-            assert_executable(&dir.path().join("second/bin").join(&name))?;
+            assert_executable(
+                &dir.path()
+                    .join("installs")
+                    .join(&name)
+                    .join("second/bin")
+                    .join(&name),
+            )?;
         }
         Ok(())
     }
@@ -301,7 +363,7 @@ mod tests {
         let dir = TempDir::new("beamup-test")?;
         let file = dir.path().join("rebar3");
         fs::write(&file, CONTENTS)?;
-        let release_dir = dir.path().join("custom-id");
+        let release_dir = dir.path().join("installs/rebar3/custom-id");
         fs::create_dir_all(&release_dir)?;
         let marker = release_dir.join("old-install");
         fs::write(&marker, b"keep")?;
@@ -321,7 +383,7 @@ mod tests {
     #[test]
     fn missing_asset_does_not_replace_existing_install() -> Result<()> {
         let dir = TempDir::new("beamup-test")?;
-        let release_dir = dir.path().join("custom-id");
+        let release_dir = dir.path().join("installs/rebar3/custom-id");
         fs::create_dir_all(&release_dir)?;
         let marker = release_dir.join("old-install");
         fs::write(&marker, b"keep")?;
@@ -343,6 +405,73 @@ mod tests {
         let error = install_fixture(&Language::Erlang, &file, dir.path(), false).unwrap_err();
 
         assert!(error.to_string().contains("non-Windows system"));
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod failure_tests {
+    use super::*;
+
+    #[test]
+    fn corrupt_archive_never_publishes_or_replaces_an_install() -> Result<()> {
+        let dir = TempDir::new("beamup-corrupt-archive")?;
+        let asset = dir.path().join("broken.zip");
+        fs::write(&asset, b"not a zip")?;
+        let destination = dir.path().join("gleam/test");
+        let metadata = Metadata {
+            release: "v1".to_owned(),
+            ..Metadata::default()
+        };
+
+        for existing in [false, true] {
+            if existing {
+                fs::create_dir_all(destination.join("bin"))?;
+                fs::write(destination.join("keep"), b"previous install")?;
+            }
+            assert!(install_asset(
+                &asset,
+                &destination,
+                &destination.join("bin"),
+                true,
+                &metadata
+            )
+            .is_err());
+            if existing {
+                assert_eq!(fs::read(destination.join("keep"))?, b"previous install");
+            } else {
+                assert!(!destination.exists());
+            }
+            assert_eq!(
+                fs::read_dir(destination.parent().unwrap())?.count(),
+                usize::from(existing)
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn metadata_is_stored_with_the_install() -> Result<()> {
+        let dir = TempDir::new("beamup-metadata")?;
+        let asset = dir.path().join("elixir.zip");
+        let mut archive = zip::ZipWriter::new(File::create(&asset)?);
+        archive.start_file("bin/elixir", zip::write::SimpleFileOptions::default())?;
+        use std::io::Write;
+        archive.write_all(b"elixir executable")?;
+        archive.finish()?;
+        let destination = dir.path().join("elixir/custom-name");
+        let metadata = Metadata {
+            release: "v1.19.0".to_owned(),
+            otp_vsn: Some("28".to_owned()),
+            build_options: None,
+        };
+        install_asset(&asset, &destination, &destination, false, &metadata)?;
+        let stored: Metadata = toml::from_str(&fs::read_to_string(
+            destination.join(installs::METADATA_FILE),
+        )?)?;
+        assert_eq!(stored.release, "v1.19.0");
+        assert_eq!(stored.otp_vsn.as_deref(), Some("28"));
+        assert!(stored.build_options.is_none());
         Ok(())
     }
 }

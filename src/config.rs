@@ -1,556 +1,212 @@
-use crate::components;
-use crate::languages;
-use color_eyre::{eyre::eyre, eyre::Report, eyre::Result};
+use crate::{components, installs, languages};
+use color_eyre::eyre::{eyre, Result, WrapErr};
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::io::Write;
-use std::path::*;
+use std::{fs, path::*};
 
 static LOCAL_CONFIG_FILE: &str = ".beamup.toml";
 static CONFIG_FILE: &str = "config.toml";
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
-    install_dir: String,
-    erlang: Option<LanguageConfig>,
-    gleam: Option<LanguageConfig>,
-    elixir: Option<LanguageConfig>,
-    elp: Option<ComponentConfig>,
-    rebar3: Option<ComponentConfig>,
+    pub install_dir: PathBuf,
+    erlang: Option<ToolConfig>,
+    gleam: Option<ToolConfig>,
+    elixir: Option<ToolConfig>,
+    elp: Option<ToolConfig>,
+    rebar3: Option<ToolConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
-pub struct LanguageConfig {
+pub struct ToolConfig {
     default: Option<String>,
     default_build_options: Option<String>,
-    installs: toml::Table,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-pub struct ComponentConfig {
-    default: Option<String>,
-    default_build_options: Option<String>,
-    installs: toml::Table,
-}
-
-pub fn print_ids(config: &Config) {
-    println!("Elixir:");
-    config.elixir.as_ref().map(print_language_ids);
-    println!();
-    println!("Erlang:");
-    config.erlang.as_ref().map(print_language_ids);
-    println!();
-    println!("Gleam:");
-    config.gleam.as_ref().map(print_language_ids);
-}
-
-fn print_language_ids(lc: &LanguageConfig) {
-    for id in lc.installs.keys() {
-        println!("{id}")
+impl Config {
+    fn language(&self, language: &languages::Language) -> Option<&ToolConfig> {
+        match language {
+            languages::Language::Gleam => self.gleam.as_ref(),
+            languages::Language::Erlang => self.erlang.as_ref(),
+            languages::Language::Elixir => self.elixir.as_ref(),
+        }
     }
-}
 
-pub fn get_language_config(language: &languages::Language, config: &Config) -> LanguageConfig {
-    match language {
-        languages::Language::Gleam => config.gleam.clone().unwrap_or_default(),
-        languages::Language::Erlang => config.erlang.clone().unwrap_or_default(),
-        languages::Language::Elixir => config.elixir.clone().unwrap_or_default(),
+    fn language_mut(&mut self, language: &languages::Language) -> &mut ToolConfig {
+        match language {
+            languages::Language::Gleam => &mut self.gleam,
+            languages::Language::Erlang => &mut self.erlang,
+            languages::Language::Elixir => &mut self.elixir,
+        }
+        .get_or_insert_with(ToolConfig::default)
     }
-}
 
-fn get_component_config(kind: &components::Kind, config: &Config) -> ComponentConfig {
-    match kind {
-        components::Kind::Elp => config.elp.clone().unwrap_or_default(),
-        components::Kind::Rebar3 => config.rebar3.clone().unwrap_or_default(),
-    }
-}
-
-fn get_default_id(lc: &Option<LanguageConfig>) -> Result<String> {
-    match lc {
-        None => Err(eyre!("No default found for language {:?}", lc)),
-        Some(lc) => match &lc.default {
-            None => Err(eyre!("No default found for language {:?}", lc)),
-            Some(default) => {
-                debug!("Found default {:?}", default);
-                Ok(default.to_string())
-            }
-        },
-    }
-}
-
-fn get_component_default_id(c: &Option<ComponentConfig>) -> Result<String> {
-    match c {
-        None => Err(eyre!("No default found for component {:?}", c)),
-        Some(c) => match &c.default {
-            None => Err(eyre!("No default found for component {:?}", c)),
-            Some(default) => {
-                debug!("Found default {:?}", default);
-                Ok(default.to_string())
-            }
-        },
+    fn component(&self, kind: &components::Kind) -> Option<&ToolConfig> {
+        match kind {
+            components::Kind::Elp => self.elp.as_ref(),
+            components::Kind::Rebar3 => self.rebar3.as_ref(),
+        }
     }
 }
 
 pub fn switch(language: &languages::Language, id: &str, config: &Config) -> Result<()> {
-    let language_config = get_language_config(language, config);
-
-    // we just look it up to return an error if it doesn't exist
-    let _ = lookup_install_by_id(id.to_string(), Some(language_config))?;
-
-    let mut c = match local_config() {
-        None => toml::Table::new(),
-        Some(local_config) => local_config.clone(),
-    };
-
-    c.insert(language.to_string(), toml::Value::String(id.to_string()));
-
-    let toml_string = toml::to_string(&c).unwrap();
-    let mut file = fs::File::create(LOCAL_CONFIG_FILE)?;
-    file.write_all(toml_string.as_bytes())?;
+    installs::lookup(config, &language.to_string(), id)?;
+    let mut local = local_config()?.unwrap_or_default();
+    local.insert(language.to_string(), toml::Value::String(id.to_owned()));
+    fs::write(LOCAL_CONFIG_FILE, toml::to_string(&local)?)?;
     Ok(())
 }
 
-fn get_local_id(language_str: String, local_config: &Option<toml::Table>) -> Option<&toml::Value> {
-    match local_config {
-        None => None,
-        Some(lc) => lc.get(language_str.clone().as_str()),
-    }
-}
-
-pub fn get_otp_major_vsn() -> Result<String> {
-    let dir = match install_to_use_by_language(languages::Language::Erlang) {
-        Ok(dir) => Ok(dir),
-        Err(_) => Err(eyre!("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")),
-    }?;
-
-    let releases_dir = Path::new(&dir).join("lib").join("erlang").join("releases");
-    match check_release_dir(&releases_dir) {
-        otp_major_vsn @ Ok(_) => otp_major_vsn,
-        Err(_) => {
-            // static Erlang builds have a different structure, so check that too
-            let releases_dir = Path::new(&dir).join("releases");
-            check_release_dir(&releases_dir)
+fn selected_id(tool: &str, settings: Option<&ToolConfig>) -> Result<String> {
+    if let Some(local) = local_config()? {
+        if let Some(value) = local.get(tool) {
+            return value.as_str().map(str::to_owned).ok_or_else(|| {
+                eyre!("Expected an install ID string for {tool} in {LOCAL_CONFIG_FILE}")
+            });
         }
     }
+    settings
+        .and_then(|s| s.default.clone())
+        .ok_or_else(|| eyre!("No default found for {tool}"))
+}
+
+pub fn get_otp_major_vsn(config: &Config) -> Result<String> {
+    let dir = install_to_use_by_language(&languages::Language::Erlang, config)
+        .wrap_err("No default Erlang installation found. Install an Erlang version, like `beamup install erlang latest` or set a default with `beamup default erlang <ID>` first.")?;
+    let releases_dir = dir.join("lib/erlang/releases");
+    check_release_dir(&releases_dir).or_else(|_| check_release_dir(&dir.join("releases")))
 }
 
 fn check_release_dir(releases_dir: &Path) -> Result<String> {
-    for entry in std::fs::read_dir(&releases_dir)? {
+    for entry in fs::read_dir(releases_dir)? {
         let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            let binding = entry.file_name();
-            let otp_major_vsn = binding
-                .to_str()
-                .ok_or(eyre!("Unable to convert OTP vsn {binding:?} to string"))?;
-
-            return Ok(otp_major_vsn.to_string());
+        if entry.path().is_dir() {
+            return entry
+                .file_name()
+                .into_string()
+                .map_err(|name| eyre!("Unable to convert OTP version {name:?} to string"));
         }
     }
-
     Err(eyre!("No installed OTP release found in {releases_dir:?}"))
 }
 
-pub fn component_install_to_use(kind: &components::Kind) -> Result<String> {
-    let (_, config) = home_config()?;
-    let component_config = get_component_config(kind, &config);
-    let local_config = local_config();
-    let component_str = kind.to_string();
-
-    let maybe_id = match get_local_id(component_str, &local_config) {
-        None => None,
-        Some(toml::Value::String(id)) => {
-            debug!("Using id from local config file");
-            Some(id)
-        }
-        _ => None,
-    };
-
-    let id = match maybe_id {
-        None => {
-            debug!("No local config found. Using global config");
-            match kind {
-                components::Kind::Elp => get_component_default_id(&config.elp)?,
-                components::Kind::Rebar3 => get_component_default_id(&config.rebar3)?,
-            }
-        }
-        Some(id) => id.clone(),
-    };
-
-    lookup_component_install_by_id(id, Some(component_config))
+pub fn component_install_to_use(kind: &components::Kind, config: &Config) -> Result<PathBuf> {
+    let name = kind.to_string();
+    let id = selected_id(&name, config.component(kind))?;
+    installs::lookup(config, &name, &id)
 }
 
-pub fn install_to_use_by_bin(bin: &str) -> Result<String> {
-    let (_, config) = home_config()?;
-    let language = languages::bin_to_language(bin.to_string(), &config)?;
-    install_to_use_by_language(language)
+pub fn install_to_use_by_bin(bin: &str, config: &Config) -> Result<PathBuf> {
+    let language = languages::bin_to_language(bin.to_owned(), config)?;
+    install_to_use_by_language(&language, config)
 }
 
-fn install_to_use_by_language(language: languages::Language) -> Result<String> {
-    let (_, config) = home_config()?;
-    let language_config = get_language_config(&language, &config);
-    let local_config = local_config();
-    let language_str = language.to_string();
-
-    let maybe_id = match get_local_id(language_str, &local_config) {
-        None => None,
-        Some(toml::Value::String(id)) => {
-            debug!("Using id from local config file");
-            Some(id)
-        }
-        _ => None,
-    };
-
-    let id = match maybe_id {
-        None => {
-            debug!("No local config found. Using global config");
-            match language {
-                languages::Language::Gleam => get_default_id(&config.gleam)?,
-                languages::Language::Erlang => get_default_id(&config.erlang)?,
-                languages::Language::Elixir => get_default_id(&config.elixir)?,
-            }
-        }
-        Some(id) => id.clone(),
-    };
-
-    lookup_install_by_id(id, Some(language_config))
-}
-
-fn lookup_install_by_id(id: String, lc: Option<LanguageConfig>) -> Result<String> {
-    debug!("Looking up install for {}", id);
-    match lc {
-        None => Err(eyre!("No config found")),
-        Some(language_config) => match language_config.installs.get(&id) {
-            None => Err(eyre!("No install found for id {id}")),
-            // backwards compatible clause for when id's only pointed
-            // to a directory and not more metadata
-            Some(toml::Value::String(dir)) => {
-                debug!("Found install in directory {}", dir);
-                Ok(dir.to_owned())
-            }
-            Some(t @ toml::Value::Table(_)) => {
-                if let Some(toml::Value::String(dir)) = t.get("dir") {
-                    Ok(dir.to_string())
-                } else {
-                    Err(eyre!("No directory found for install id {id}"))
-                }
-            }
-            _ => Err(eyre!("Bad directory found in installs for id {id}")),
-        },
-    }
-}
-
-fn lookup_component_install_by_id(id: String, lc: Option<ComponentConfig>) -> Result<String> {
-    debug!("Looking up install for {}", id);
-    match lc {
-        None => Err(eyre!("No config found")),
-        Some(component_config) => match component_config.installs.get(&id) {
-            None => Err(eyre!("No install found for id {id}")),
-            // backwards compatible clause for when id's only pointed
-            // to a directory and not more metadata
-            Some(toml::Value::String(dir)) => {
-                debug!("Found install in directory {}", dir);
-                Ok(dir.to_owned())
-            }
-            Some(t @ toml::Value::Table(_)) => {
-                if let Some(toml::Value::String(dir)) = t.get("dir") {
-                    Ok(dir.to_string())
-                } else {
-                    Err(eyre!("No directory found for install id {id}"))
-                }
-            }
-            _ => Err(eyre!("Bad directory found in installs for id {id}")),
-        },
-    }
+fn install_to_use_by_language(language: &languages::Language, config: &Config) -> Result<PathBuf> {
+    let name = language.to_string();
+    let id = selected_id(&name, config.language(language))?;
+    installs::lookup(config, &name, &id)
 }
 
 pub fn lookup_default_build_options(language: &languages::Language, config: &Config) -> String {
-    debug!("Looking up default configure options for {:?}", language);
-
-    let lc = get_language_config(language, config);
-
-    match lc.default_build_options {
-        None => "".to_string(),
-        Some(options) => options.to_owned(),
-    }
+    config
+        .language(language)
+        .and_then(|c| c.default_build_options.clone())
+        .unwrap_or_default()
 }
 
 pub fn set_default(
     language: &languages::Language,
-    id: &String,
+    id: &str,
     config_file: String,
-    config: Config,
-) -> Result<(), Report> {
-    debug!("set default {:?} to use to {:?}", language, id);
-    let lc = get_language_config(language, &config);
-    let LanguageConfig {
-        default: _,
-        installs: installs_table,
-        default_build_options,
-    } = lc;
-
-    let new_lc = LanguageConfig {
-        default: Some(id.to_owned()),
-        installs: installs_table.clone(),
-        default_build_options: default_build_options.clone(),
-    };
-
-    let new_config = match language {
-        languages::Language::Gleam => Config {
-            gleam: Some(new_lc),
-            ..config
-        },
-        languages::Language::Erlang => Config {
-            erlang: Some(new_lc),
-            ..config
-        },
-        languages::Language::Elixir => Config {
-            elixir: Some(new_lc),
-            ..config
-        },
-    };
-
-    write_config(config_file, new_config)
-}
-
-pub fn update_language_config(
-    language: &languages::Language,
-    id: &String,
-    release: &String,
-    dir: String,
-    lc: LanguageConfig,
-) -> Result<LanguageConfig> {
-    let LanguageConfig {
-        default: _,
-        installs: mut table,
-        default_build_options,
-    } = lc;
-    let mut id_table = toml::Table::new();
-    id_table.insert("dir".to_string(), toml::Value::String(dir));
-    id_table.insert(
-        "release".to_string(),
-        toml::Value::String(release.to_owned()),
-    );
-
-    if language == &languages::Language::Elixir {
-        let otp_vsn = get_otp_major_vsn()?;
-        id_table.insert("otp_vsn".to_string(), toml::Value::String(otp_vsn));
-    }
-
-    table.insert(id.clone(), toml::Value::Table(id_table));
-    Ok(LanguageConfig {
-        default: Some(id.to_owned()),
-        installs: table.clone(),
-        default_build_options: default_build_options.clone(),
-    })
-}
-
-pub fn update_component_config(
-    _kind: &components::Kind,
-    id: &String,
-    release: &String,
-    dir: String,
-    c: ComponentConfig,
-) -> Result<ComponentConfig> {
-    let ComponentConfig {
-        default: _,
-        installs: mut table,
-        default_build_options,
-    } = c;
-    let mut id_table = toml::Table::new();
-    id_table.insert("dir".to_string(), toml::Value::String(dir));
-    id_table.insert(
-        "release".to_string(),
-        toml::Value::String(release.to_owned()),
-    );
-
-    table.insert(id.clone(), toml::Value::Table(id_table));
-    Ok(ComponentConfig {
-        default: Some(id.to_owned()),
-        installs: table.clone(),
-        default_build_options: default_build_options.clone(),
-    })
-}
-
-pub fn add_install(
-    language: &languages::Language,
-    id: &String,
-    release: &String,
-    dir: String,
-    config_file: String,
-    config: Config,
+    mut config: Config,
 ) -> Result<()> {
-    debug!("adding install {id} pointing to {dir}");
-    let language_config = get_language_config(language, &config);
-
-    let updated_language_config =
-        update_language_config(language, id, release, dir, language_config.clone())?;
-
-    let new_config = match language {
-        languages::Language::Gleam => Config {
-            gleam: Some(updated_language_config),
-            ..config
-        },
-        languages::Language::Erlang => Config {
-            erlang: Some(updated_language_config),
-            ..config
-        },
-        languages::Language::Elixir => Config {
-            elixir: Some(updated_language_config),
-            ..config
-        },
-    };
-
-    let _ = write_config(config_file, new_config);
-
-    Ok(())
+    installs::lookup(&config, &language.to_string(), id)?;
+    config.language_mut(language).default = Some(id.to_owned());
+    write_config(config_file, config)
 }
 
-pub fn add_component_install(
+pub fn set_component_default(
     kind: &components::Kind,
-    id: &String,
-    release: &String,
-    dir: String,
+    id: &str,
     config_file: String,
-    config: Config,
+    mut config: Config,
 ) -> Result<()> {
-    debug!("adding install {id} pointing to {dir}");
-    let component_config = get_component_config(kind, &config);
-
-    let updated_component_config =
-        update_component_config(kind, id, release, dir, component_config.clone())?;
-
-    let new_config = match kind {
-        components::Kind::Elp => Config {
-            elp: Some(updated_component_config),
-            ..config
-        },
-        components::Kind::Rebar3 => Config {
-            rebar3: Some(updated_component_config),
-            ..config
-        },
+    installs::lookup(&config, &kind.to_string(), id)?;
+    let settings = match kind {
+        components::Kind::Elp => &mut config.elp,
+        components::Kind::Rebar3 => &mut config.rebar3,
     };
-
-    let _ = write_config(config_file, new_config);
-
-    Ok(())
-}
-
-pub fn maybe_create_dir(release_dir: &PathBuf, force: bool) -> Result<()> {
-    match release_dir.try_exists() {
-        Ok(true) =>
-            match force {
-                true => {
-                    info!("Force enabled. Deleting existing release directory {release_dir:?}");
-                    fs::remove_dir_all(release_dir)?
-                },
-                _ => return Err(eyre!("Release directory already exists. Use `-f` to delete {release_dir:?} and recreate instead of giving this error.")),
-            }
-        Ok(false) => {},
-        Err(e) => return Err(eyre!(
-            "Unable to check for existence of release directory: {e:?}"
-        )),
-    };
-
-    let _ = std::fs::create_dir_all(release_dir);
-
-    Ok(())
+    settings.get_or_insert_with(ToolConfig::default).default = Some(id.to_owned());
+    write_config(config_file, config)
 }
 
 pub fn bin_dir() -> PathBuf {
-    match dirs::executable_dir() {
-        Some(bin_dir) => bin_dir,
-        None => {
-            let home_dir = dirs::home_dir().unwrap();
-            Path::new(&home_dir).join(".beamup").join("bin")
-        }
-    }
-}
-
-pub fn data_dir() -> Result<PathBuf> {
-    match dirs::data_local_dir() {
-        Some(dir) => Ok(dir),
-        None => Err(eyre!("No data directory available")),
-    }
+    dirs::executable_dir().unwrap_or_else(|| dirs::home_dir().unwrap().join(".beamup/bin"))
 }
 
 pub fn home_config_file() -> Result<String> {
-    let config_dir = match dirs::config_local_dir() {
-        Some(d) => d,
-        None => return Err(eyre!("no home directory available")),
-    };
-    let data_dir = match dirs::data_local_dir() {
-        Some(d) => d,
-        None => return Err(eyre!("no home directory available")),
-    };
-
-    let default_config = config_dir.join("beamup").join(CONFIG_FILE);
-    let default_data = data_dir.join("beamup");
-
-    let _ = fs::create_dir_all(config_dir.join("beamup"));
-    let _ = fs::create_dir_all(data_dir.join("beamup"));
-
+    let config_dir = dirs::config_local_dir()
+        .ok_or_else(|| eyre!("No config directory available"))?
+        .join("beamup");
+    let default_config = config_dir.join(CONFIG_FILE);
+    fs::create_dir_all(&config_dir)?;
     if !default_config.exists() {
+        let install_dir = dirs::data_local_dir()
+            .ok_or_else(|| eyre!("No data directory available"))?
+            .join("beamup");
         let config = Config {
-            install_dir: default_data.to_str().unwrap().to_string(),
-            erlang: Some(LanguageConfig {
-                default: None,
-                installs: toml::Table::new(),
-                default_build_options: None,
-            }),
-            gleam: Some(LanguageConfig {
-                default: None,
-                installs: toml::Table::new(),
-                default_build_options: None,
-            }),
-            elixir: Some(LanguageConfig {
-                default: None,
-                installs: toml::Table::new(),
-                default_build_options: None,
-            }),
-            elp: Some(ComponentConfig {
-                default: None,
-                installs: toml::Table::new(),
-                default_build_options: None,
-            }),
-            rebar3: Some(ComponentConfig {
-                default: None,
-                installs: toml::Table::new(),
-                default_build_options: None,
-            }),
+            install_dir,
+            erlang: None,
+            gleam: None,
+            elixir: None,
+            elp: None,
+            rebar3: None,
         };
-
-        write_config(default_config.to_str().unwrap().to_string(), config)?;
-        info!(
-            "Created a default config at {:?}",
-            default_config.to_owned()
-        );
+        write_config(default_config.to_string_lossy().into_owned(), config)?;
+        info!("Created a default config at {:?}", default_config);
     }
-
-    Ok(default_config.to_str().unwrap().to_string())
+    Ok(default_config.to_string_lossy().into_owned())
 }
 
-fn local_config() -> Option<toml::Table> {
+fn local_config() -> Result<Option<toml::Table>> {
     match fs::read_to_string(LOCAL_CONFIG_FILE) {
-        Ok(local_config_str) => toml::from_str(local_config_str.as_str()).ok(),
-        _ => None,
+        Ok(text) => Ok(Some(
+            toml::from_str(&text).wrap_err("Failed to parse .beamup.toml")?,
+        )),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(e.into()),
     }
 }
 
 pub fn home_config() -> Result<(String, Config)> {
     let config_file = home_config_file()?;
-    Ok((config_file.to_owned(), read_config(config_file)))
+    Ok((config_file.clone(), read_config(config_file)?))
 }
 
-pub fn read_config(file: String) -> Config {
-    let toml_str = fs::read_to_string(file).expect("Failed to read config file");
-    let config: Config = toml::from_str(toml_str.as_str()).unwrap();
-    config
+pub fn read_config(file: String) -> Result<Config> {
+    let text =
+        fs::read_to_string(&file).wrap_err_with(|| format!("Failed to read config {file}"))?;
+    let mut config: Config =
+        toml::from_str(&text).wrap_err_with(|| format!("Failed to parse config {file}"))?;
+    // Resolve relative roots against the config's directory, independent of the project's cwd.
+    if config.install_dir.is_relative() {
+        let config_file = std::path::absolute(file)?;
+        config.install_dir = config_file.parent().unwrap().join(config.install_dir);
+    }
+    let mut normalized = PathBuf::new();
+    for component in config.install_dir.components() {
+        match component {
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            Component::CurDir => {}
+            other => normalized.push(other.as_os_str()),
+        }
+    }
+    config.install_dir = normalized;
+    Ok(config)
 }
 
-pub fn write_config(file_path: String, config: Config) -> Result<()> {
-    let toml_string = toml::to_string(&config).unwrap();
-    let mut file = fs::File::create(file_path)?;
-    file.write_all(toml_string.as_bytes())?;
+pub fn write_config(file: String, config: Config) -> Result<()> {
+    fs::write(file, toml::to_string(&config)?)?;
     Ok(())
 }
