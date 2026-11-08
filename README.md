@@ -121,6 +121,11 @@ BEAMUP_BUILD_OPTIONS="--enable-lock-counter" beamup build erlang -i latest-lock-
 The `build` command will compile a release and `install` will fetch a binary
 release. At this time Gleam and Elixir only the `install` command is supported`.
 
+Release names are tried as exact tags first. If no release matches, beamup tries
+adding `OTP-` for Erlang or `v` for Elixir and Gleam. For example,
+`beamup build erlang 28.0` can fetch `OTP-28.0`, and `beamup install gleam 1.10.0`
+can fetch `v1.10.0`. The same fallback applies to both `build` and `install`.
+
 Erlang installs are static builds from
 [gleam-community/erlang-linux-builds](https://github.com/gleam-community/erlang-linux-builds).
 To install a build that dynamically links against libc so that NIFs work use the

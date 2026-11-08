@@ -65,6 +65,13 @@ impl Buildable for Language {
 }
 
 impl Installable for Language {
+    fn release_tag_prefix(&self) -> Option<&'static str> {
+        Some(match self {
+            Language::Erlang => "OTP-",
+            Language::Elixir | Language::Gleam => "v",
+        })
+    }
+
     fn binary_repo(&self) -> GithubRepo {
         match self {
             Language::Elixir => GithubRepo {

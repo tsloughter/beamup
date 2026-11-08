@@ -17,6 +17,11 @@ pub trait Installable: std::fmt::Display {
         self.binary_repo()
     }
 
+    /// Prefix to try when an exact release tag is not found.
+    fn release_tag_prefix(&self) -> Option<&'static str> {
+        None
+    }
+
     fn release_dir(&self, id: &str, config: &config::Config) -> Result<PathBuf> {
         crate::installs::path(config, &self.to_string(), id)
     }
