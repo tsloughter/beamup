@@ -46,24 +46,3 @@ zip = "2.2.0"
 [profile.dist]
 inherits = "release"
 lto = "thin"
-
-# Config for 'dist'
-[workspace.metadata.dist]
-# The preferred dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "latest"
-# CI backends to support
-ci = "github"
-# The installers to generate for each app
-installers = ["shell", "powershell", "msi"]
-# Target platforms to build apps for (Rust target-triple syntax)
-targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "aarch64-unknown-linux-musl", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "x86_64-pc-windows-msvc"]
-# Which actions to run on pull requests
-pr-run-mode = "plan"
-# Path that installers should place binaries in
-install-path = ["$BEAMUP_HOME/bin", "~/.local/bin"]
-# Whether to install an updater program
-install-updater = false
-
-[workspace.metadata.dist.github-custom-runners]
-aarch64-unknown-linux-gnu = "buildjet-2vcpu-ubuntu-2204-arm"
-aarch64-unknown-linux-musl = "buildjet-2vcpu-ubuntu-2204-arm"
