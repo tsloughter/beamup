@@ -53,7 +53,12 @@ pub fn run<T: Buildable>(
     let release = git_ref.to_string();
 
     let out_dir = TempDir::new(github_repo.repo.as_str())?;
-    let file = download_release_tarball(out_dir.path(), &github_repo, &release)?;
+    let file = download_release_tarball(
+        out_dir.path(),
+        &github_repo,
+        &release,
+        installable.release_tag_prefix(),
+    )?;
 
     let tar_gz = File::open(&file).wrap_err_with(|| {
         format!(
